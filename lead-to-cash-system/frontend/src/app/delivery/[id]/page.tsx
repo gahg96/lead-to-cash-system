@@ -869,7 +869,7 @@ export default function ProjectDetailPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     className="flex-1 md:flex-none border-green-200 text-green-700 hover:bg-green-50"
-                                                    onClick={() => window.open(`http://localhost:3000/${m.filepath}`)}
+                                                    onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/${m.filepath}`)}
                                                 >
                                                     <Download className="h-4 w-4 mr-2" /> {t("project.actions.downloadMinutes")}
                                                 </Button>

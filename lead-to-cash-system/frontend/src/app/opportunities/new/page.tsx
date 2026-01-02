@@ -136,7 +136,7 @@ export default function NewOpportunityPage() {
             for (const file of pendingFiles) {
                 const formData = new FormData();
                 formData.append('file', file);
-                await fetch(`http://localhost:3000/opportunities/${opportunity.id}/attachments`, {
+                await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/opportunities/${opportunity.id}/attachments`, {
                     method: 'POST',
                     body: formData,
                 });

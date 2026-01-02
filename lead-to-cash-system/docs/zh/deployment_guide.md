@@ -58,7 +58,7 @@
 5.  **环境变量 (Environment Variables)**:
     添加：
     *   `NEXT_PUBLIC_API_URL`: (步骤2中获取的后端 URL，如 `https://l2c-backend.onrender.com`)
-        *注意：不要带尾部的斜杠 `/`*
+        *注意：这是前端连接后端的关键。本地开发时默认为 `http://localhost:3001`，生产环境必须设置为部署后的后端地址。*
 6.  点击 **"Deploy"**。
 
 ---

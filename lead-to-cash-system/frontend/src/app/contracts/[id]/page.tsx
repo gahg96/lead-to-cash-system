@@ -410,7 +410,7 @@ export default function ContractDetailPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" onClick={() => window.open(`http://localhost:3000/${doc.filepath}`, '_blank')}>{t("contract.documents.download")}</Button>
+                                            <Button variant="ghost" size="sm" onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/${doc.filepath}`, '_blank')}>{t("contract.documents.download")}</Button>
                                         </div>
                                     ))
                                 ) : (

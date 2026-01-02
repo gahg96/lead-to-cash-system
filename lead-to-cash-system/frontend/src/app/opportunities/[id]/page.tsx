@@ -337,7 +337,7 @@ export default function OpportunityDetailPage() {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            await fetch(`http://localhost:3000/opportunities/${opportunityId}/attachments`, {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/opportunities/${opportunityId}/attachments`, {
                 method: 'POST',
                 body: formData,
             });
@@ -851,7 +851,7 @@ export default function OpportunityDetailPage() {
                                                 <div key={attachment.id} className="flex items-center gap-3 p-3 rounded-lg border bg-slate-50">
                                                     <Paperclip className="h-5 w-5 text-blue-500" />
                                                     <div className="flex-1">
-                                                        <a href={`http://localhost:3000/opportunities/attachments/download/${attachment.filename}`}
+                                                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/opportunities/attachments/download/${attachment.filename}`}
                                                             className="font-medium text-sm text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
                                                             {attachment.filename}
                                                         </a>
