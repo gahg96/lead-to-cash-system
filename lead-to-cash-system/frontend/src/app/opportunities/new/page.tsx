@@ -32,9 +32,14 @@ export default function NewOpportunityPage() {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
     const [isNewCustomer, setIsNewCustomer] = useState(false);
 
-    // Fetch customers on mount
+    // Vendor selection state
+    const [vendors, setVendors] = useState<any[]>([]);
+    const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
+
+    // Fetch customers and vendors on mount
     useEffect(() => {
         api.get("/customers").then(setCustomers).catch(console.error);
+        api.get("/vendors").then(setVendors).catch(console.error);
     }, []);
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -85,6 +90,70 @@ export default function NewOpportunityPage() {
         },
     });
 
+    // Auto-save logic
+    const STORAGE_KEY = 'opportunity_form_draft';
+    const [hasDraft, setHasDraft] = useState(false);
+
+    // Load draft on mount
+    useEffect(() => {
+        const draft = localStorage.getItem(STORAGE_KEY);
+        if (draft) {
+            setHasDraft(true);
+            try {
+                const parsed = JSON.parse(draft);
+                // Confirm with user or just show a "Restore" button? 
+                // For simplicity, let's just show a notification or button. 
+                // But user asked for auto-save, implying seamless restore or recovery.
+                // Let's adding a manual restore button if draft exists is safer.
+            } catch (e) {
+                console.error("Failed to parse draft", e);
+            }
+        }
+    }, []);
+
+    const restoreDraft = () => {
+        const draft = localStorage.getItem(STORAGE_KEY);
+        if (draft) {
+            try {
+                const parsed = JSON.parse(draft);
+                form.reset(parsed);
+                if (parsed.richDescription) {
+                    setRichDescription(parsed.richDescription);
+                }
+                if (parsed.vendorIds) {
+                    setSelectedVendorIds(parsed.vendorIds);
+                }
+                setHasDraft(false); // Hide the prompt after restoring
+                // Also set selectedCustomerId if it was saved (custom logic needed if we saved it)
+            } catch (e) {
+                console.error("Failed to restore", e);
+            }
+        }
+    };
+
+    const clearDraft = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        setHasDraft(false);
+    };
+
+    // Save to local storage on change
+    useEffect(() => {
+        const subscription = form.watch((value) => {
+            const dataToSave = {
+                ...value,
+                richDescription, // Include rich text state
+                vendorIds: selectedVendorIds
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        });
+        return () => subscription.unsubscribe();
+    }, [form.watch, richDescription, selectedVendorIds]);
+
+    // Clear draft on successful submit
+    const clearDraftOnSubmit = () => {
+        localStorage.removeItem(STORAGE_KEY);
+    };
+
     const onSubmit = async (data: LeadFormValues) => {
         setIsSubmitting(true);
         try {
@@ -130,6 +199,8 @@ export default function NewOpportunityPage() {
                 otherCost: data.otherCost,
                 grossProfit: data.grossProfit,
                 profitMargin: data.profitMargin,
+                businessType: data.businessType,
+                vendorIds: selectedVendorIds.length > 0 ? selectedVendorIds : undefined,
             });
 
             // Upload pending files
@@ -141,6 +212,9 @@ export default function NewOpportunityPage() {
                     body: formData,
                 });
             }
+
+            // Clear draft
+            localStorage.removeItem(STORAGE_KEY);
 
             router.push("/opportunities");
         } catch (error) {
@@ -162,6 +236,22 @@ export default function NewOpportunityPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("form.title")}</h1>
                     <p className="text-slate-500 mt-1">{t("form.desc")}</p>
                 </div>
+
+                {hasDraft && (
+                    <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm">检测到您有未保存的草稿，是否恢复？</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant="outline" className="bg-white hover:bg-blue-50 text-blue-600 border-blue-200" onClick={clearDraft}>
+                                忽略
+                            </Button>
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={restoreDraft}>
+                                恢复草稿
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <Tabs defaultValue="customer" className="w-full">
@@ -355,6 +445,44 @@ export default function NewOpportunityPage() {
                                             </div>
                                         </div>
                                     )}
+
+                                    <div className="mt-6 border-t pt-6 space-y-3">
+                                        <Label className="text-base font-medium">涉及厂商 / Associated Vendors</Label>
+                                        <div className="text-sm text-slate-500 mb-2">选择此商机涉及的合作伙伴或供应商</div>
+                                        {selectedVendorIds.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                {selectedVendorIds.map(id => {
+                                                    const v = vendors.find(item => item.id === id);
+                                                    return v ? (
+                                                        <div key={id} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm border border-blue-100">
+                                                            <span>{v.name}</span>
+                                                            <button type="button" onClick={() => setSelectedVendorIds(prev => prev.filter(pid => pid !== id))} className="text-blue-400 hover:text-blue-600">
+                                                                <X className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                        )}
+                                        <Select
+                                            onValueChange={(val) => {
+                                                if (!selectedVendorIds.includes(val)) {
+                                                    setSelectedVendorIds([...selectedVendorIds, val]);
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="添加关联厂商..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {vendors.filter(v => !selectedVendorIds.includes(v.id)).map(v => (
+                                                    <SelectItem key={v.id} value={v.id}>
+                                                        {v.name} <span className="text-slate-400 text-xs ml-2">({v.type || '未分类'})</span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </TabsContent>
@@ -398,6 +526,19 @@ export default function NewOpportunityPage() {
                                     <div>
                                         <Label>{t("form.closeDate")}</Label>
                                         <Input {...form.register("expectedCloseDate")} type="date" />
+                                    </div>
+                                    <div>
+                                        <Label>{t("form.businessType")}</Label>
+                                        <Select onValueChange={(v) => form.setValue("businessType", v)}>
+                                            <SelectTrigger><SelectValue placeholder={t("form.placeholder.selectBusinessType")} /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="PROJECT_DEVELOPMENT">{t("options.businessType.PROJECT_DEVELOPMENT")}</SelectItem>
+                                                <SelectItem value="OUTSOURCING">{t("options.businessType.OUTSOURCING")}</SelectItem>
+                                                <SelectItem value="PRODUCT_SALES">{t("options.businessType.PRODUCT_SALES")}</SelectItem>
+                                                <SelectItem value="CONSULTING">{t("options.businessType.CONSULTING")}</SelectItem>
+                                                <SelectItem value="OTHER">{t("options.businessType.OTHER")}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </CardContent>
                             </Card>

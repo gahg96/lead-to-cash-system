@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
                                     fill="#3b82f6"
                                     name={t("dashboard.analytics.pipeline")}
                                     cursor="pointer"
-                                    onClick={(data) => {
+                                    onClick={(data: any) => {
                                         if (data && data.opportunityIds && data.opportunityIds.length > 0) {
                                             if (data.opportunityIds.length === 1) {
                                                 window.location.href = `/opportunities/${data.opportunityIds[0]}`;

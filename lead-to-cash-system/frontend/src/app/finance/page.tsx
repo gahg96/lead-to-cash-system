@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, FileText, TrendingUp, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import { AgingChart } from '@/components/finance/AgingChart';
+import { ProjectHealthTable } from '@/components/finance/ProjectHealthTable';
 
 export default function FinancePage() {
     const [dashboardData, setDashboardData] = useState<any>(null);
@@ -42,12 +44,20 @@ export default function FinancePage() {
                     <h1 className="text-3xl font-bold">财务管理</h1>
                     <p className="text-muted-foreground mt-1">发票、收款与财务概览</p>
                 </div>
-                <Link href="/finance/invoices/new">
-                    <Button>
-                        <FileText className="mr-2 h-4 w-4" />
-                        创建发票
-                    </Button>
-                </Link>
+                <div className="flex gap-2">
+                    <Link href="/finance/funds">
+                        <Button variant="outline">
+                            <TrendingUp className="mr-2 h-4 w-4" />
+                            资金管理
+                        </Button>
+                    </Link>
+                    <Link href="/finance/invoices/new">
+                        <Button>
+                            <FileText className="mr-2 h-4 w-4" />
+                            创建发票
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {/* KPI Cards */}
@@ -134,63 +144,76 @@ export default function FinancePage() {
                 </Card>
             )}
 
-            {/* Recent Invoices */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>最近发票</CardTitle>
-                            <CardDescription>最近创建的发票记录</CardDescription>
-                        </div>
-                        <Link href="/finance/invoices">
-                            <Button variant="outline" size="sm">查看全部</Button>
-                        </Link>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {dashboardData?.recentInvoices && dashboardData.recentInvoices.length > 0 ? (
-                        <div className="space-y-3">
-                            {dashboardData.recentInvoices.slice(0, 5).map((invoice: any) => (
-                                <div
-                                    key={invoice.id}
-                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
-                                >
-                                    <div className="flex-1">
-                                        <div className="font-medium">{invoice.invoiceNumber}</div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {invoice.contract?.opportunity?.customer?.companyName || '未知客户'}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <div className="font-bold">¥{invoice.totalAmount?.toLocaleString()}</div>
-                                            <div className={`text-xs ${invoice.status === 'Paid' ? 'text-green-600' :
-                                                invoice.status === 'Overdue' ? 'text-red-600' :
-                                                    invoice.status === 'PartiallyPaid' ? 'text-amber-600' :
-                                                        'text-muted-foreground'
-                                                }`}>
-                                                {invoice.status === 'Draft' && '草稿'}
-                                                {invoice.status === 'Issued' && '已开具'}
-                                                {invoice.status === 'PartiallyPaid' && '部分收款'}
-                                                {invoice.status === 'Paid' && '已收款'}
-                                                {invoice.status === 'Overdue' && '已逾期'}
-                                                {invoice.status === 'Cancelled' && '已作废'}
+
+
+            {/* Middle Section: Aging Analysis & Project Table (New) */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                {/* Aging Chart takes 3 columns */}
+                <div className="col-span-3">
+                    {dashboardData?.agingAnalysis && (
+                        <AgingChart data={dashboardData.agingAnalysis} />
+                    )}
+                </div>
+
+                {/* Recent Invoices takes 4 columns (Moved from bottom) */}
+                <div className="col-span-4">
+                    <Card className="h-full">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>最近发票</CardTitle>
+                                    <CardDescription>最近创建的发票记录</CardDescription>
+                                </div>
+                                <Link href="/finance/invoices">
+                                    <Button variant="outline" size="sm">查看全部</Button>
+                                </Link>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {dashboardData?.recentInvoices && dashboardData.recentInvoices.length > 0 ? (
+                                <div className="space-y-3">
+                                    {dashboardData.recentInvoices.slice(0, 5).map((invoice: any) => (
+                                        <div
+                                            key={invoice.id}
+                                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                                        >
+                                            <div className="flex-1">
+                                                <div className="font-medium text-sm">{invoice.invoiceNumber}</div>
+                                                <div className="text-xs text-muted-foreground truncate w-40">
+                                                    {invoice.contract?.opportunity?.customer?.companyName || '未知客户'}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-right">
+                                                    <div className="font-bold text-sm">¥{invoice.totalAmount?.toLocaleString()}</div>
+                                                    <div className={`text-[10px] ${invoice.status === 'Paid' ? 'text-green-600' :
+                                                        invoice.status === 'Overdue' ? 'text-red-600' :
+                                                            invoice.status === 'PartiallyPaid' ? 'text-amber-600' :
+                                                                'text-muted-foreground'
+                                                        }`}>
+                                                        {invoice.status}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <Link href={`/finance/invoices/${invoice.id}`}>
-                                            <Button variant="ghost" size="sm">查看</Button>
-                                        </Link>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            暂无发票记录
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                            ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    暂无发票记录
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            {/* Bottom Section: Project Financial Health */}
+            <div className="w-full">
+                {dashboardData?.projectHealth && (
+                    <ProjectHealthTable projects={dashboardData.projectHealth} />
+                )}
+            </div>
         </div>
     );
 }

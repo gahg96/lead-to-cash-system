@@ -1,441 +1,286 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const bcrypt = __importStar(require("bcrypt"));
 const prisma = new client_1.PrismaClient();
 async function main() {
-    console.log('Seeding database...');
-    await prisma.milestone.deleteMany();
-    await prisma.contract.deleteMany();
-    await prisma.opportunity.deleteMany();
-    await prisma.customer.deleteMany();
-    const icbc = await prisma.customer.create({
+    console.log('开始创建测试数据...');
+    const customer1 = await prisma.customer.create({
         data: {
-            companyName: '中国工商银行',
-            industry: '银行',
-            companySize: '超大型',
-            contactName: '张经理',
-            contactTitle: '科技部项目经理',
-            contactEmail: 'zhang@icbc.com.cn',
-            contactPhone: '021-88888001',
+            companyName: '上海青蛙科技有限公司',
+            industry: '软件和信息技术服务业',
+            companySize: '100-500人',
+            city: '上海',
+            country: '中国',
+            contactName: '张三',
+            contactTitle: '采购经理',
+            contactPhone: '13800138000',
+            contactEmail: 'zhangsan@qingwa.com',
         },
     });
-    const bocom = await prisma.customer.create({
+    const customer2 = await prisma.customer.create({
         data: {
-            companyName: '交通银行',
-            industry: '银行',
-            companySize: '超大型',
-            contactName: '李总监',
-            contactTitle: '信息技术部总监',
-            contactEmail: 'li@bankcomm.com',
-            contactPhone: '021-88888002',
+            companyName: '北京科技发展有限公司',
+            industry: '互联网和相关服务',
+            companySize: '500-1000人',
+            city: '北京',
+            country: '中国',
+            contactName: '李四',
+            contactTitle: 'IT总监',
+            contactPhone: '13900139000',
+            contactEmail: 'lisi@bjtech.com',
         },
     });
-    const cib = await prisma.customer.create({
+    const customer3 = await prisma.customer.create({
         data: {
-            companyName: '兴业银行',
-            industry: '银行',
-            companySize: '大型',
-            contactName: '王主管',
-            contactTitle: '数字金融部主管',
-            contactEmail: 'wang@cib.com.cn',
-            contactPhone: '021-88888003',
+            companyName: '深圳创新企业',
+            industry: '电子信息',
+            companySize: '50-100人',
+            city: '深圳',
+            country: '中国',
+            contactName: '王五',
+            contactTitle: '项目经理',
+            contactPhone: '13700137000',
+            contactEmail: 'wangwu@szcx.com',
         },
     });
-    const spdb = await prisma.customer.create({
+    console.log('✓ 创建了 3 个客户');
+    const vendor1 = await prisma.vendor.create({
         data: {
-            companyName: '浦发银行',
-            industry: '银行',
-            companySize: '大型',
-            contactName: '陈经理',
-            contactTitle: '信息科技部经理',
-            contactEmail: 'chen@spdb.com.cn',
-            contactPhone: '021-88888004',
+            name: '华为技术有限公司',
+            type: '设备供应商',
+            industry: '通信设备',
+            region: '深圳',
+            brand: '华为',
+            contactName: '赵六',
+            contactPhone: '13600136000',
+            description: '全球领先的ICT基础设施和智能终端提供商',
         },
     });
-    const nbbank = await prisma.customer.create({
+    const vendor2 = await prisma.vendor.create({
         data: {
-            companyName: '宁波银行',
-            industry: '银行',
-            companySize: '中型',
-            contactName: '赵总',
-            contactTitle: '科技创新部总经理',
-            contactEmail: 'zhao@nbcb.com.cn',
-            contactPhone: '0574-8888005',
+            name: '阿里云计算有限公司',
+            type: '云服务商',
+            industry: '云计算',
+            region: '杭州',
+            brand: '阿里云',
+            contactName: '孙七',
+            contactPhone: '13500135000',
+            description: '领先的云计算及人工智能科技公司',
         },
     });
-    const sse = await prisma.customer.create({
+    console.log('✓ 创建了 2 个厂商');
+    const opp1 = await prisma.opportunity.create({
         data: {
-            companyName: '上海证券交易所',
-            industry: '证券交易所',
-            companySize: '大型',
-            contactName: '刘处长',
-            contactTitle: '技术开发部处长',
-            contactEmail: 'liu@sse.com.cn',
-            contactPhone: '021-88888006',
-        },
-    });
-    const shfe = await prisma.customer.create({
-        data: {
-            companyName: '上海期货交易所',
-            industry: '期货交易所',
-            companySize: '大型',
-            contactName: '孙主任',
-            contactTitle: '信息技术部主任',
-            contactEmail: 'sun@shfe.com.cn',
-            contactPhone: '021-88888007',
-        },
-    });
-    const gtja = await prisma.customer.create({
-        data: {
-            companyName: '国泰君安证券',
-            industry: '证券',
-            companySize: '大型',
-            contactName: '周经理',
-            contactTitle: '金融科技部经理',
-            contactEmail: 'zhou@gtja.com',
-            contactPhone: '021-88888008',
-        },
-    });
-    const everbright = await prisma.customer.create({
-        data: {
-            companyName: '光大证券',
-            industry: '证券',
-            companySize: '大型',
-            contactName: '吴总监',
-            contactTitle: '信息技术总监',
-            contactEmail: 'wu@ebscn.com',
-            contactPhone: '021-88888009',
-        },
-    });
-    const chinaTaiping = await prisma.customer.create({
-        data: {
-            companyName: '中国太平',
-            industry: '保险',
-            companySize: '超大型',
-            contactName: '郑副总',
-            contactTitle: '科技运营部副总经理',
-            contactEmail: 'zheng@cntaiping.com',
-            contactPhone: '021-88888010',
-        },
-    });
-    const citicPru = await prisma.customer.create({
-        data: {
-            companyName: '中信保诚',
-            industry: '保险',
-            companySize: '大型',
-            contactName: '黄经理',
-            contactTitle: '数字化转型部经理',
-            contactEmail: 'huang@citicpru.com.cn',
-            contactPhone: '021-88888011',
-        },
-    });
-    const htfFund = await prisma.customer.create({
-        data: {
-            companyName: '汇添富基金',
-            industry: '基金',
-            companySize: '大型',
-            contactName: '林总',
-            contactTitle: 'IT部总经理',
-            contactEmail: 'lin@htffund.com',
-            contactPhone: '021-88888012',
-        },
-    });
-    const chinaMobile = await prisma.customer.create({
-        data: {
-            companyName: '中国移动',
-            industry: '电信',
-            companySize: '超大型',
-            contactName: '杨处长',
-            contactTitle: '信息技术中心处长',
-            contactEmail: 'yang@chinamobile.com',
-            contactPhone: '021-88888013',
-        },
-    });
-    const shanghaiElectric = await prisma.customer.create({
-        data: {
-            companyName: '上海电气',
-            industry: '制造业',
-            companySize: '超大型',
-            contactName: '徐主任',
-            contactTitle: '数字化部主任',
-            contactEmail: 'xu@shanghai-electric.com',
-            contactPhone: '021-88888014',
-        },
-    });
-    const saicMotor = await prisma.customer.create({
-        data: {
-            companyName: '上汽集团',
-            industry: '汽车',
-            companySize: '超大型',
-            contactName: '何经理',
-            contactTitle: '智能化研发中心经理',
-            contactEmail: 'he@saicmotor.com',
-            contactPhone: '021-88888015',
-        },
-    });
-    const orientalPearl = await prisma.customer.create({
-        data: {
-            companyName: '东方明珠',
-            industry: '传媒',
-            companySize: '大型',
-            contactName: '马总监',
-            contactTitle: '技术研发总监',
-            contactEmail: 'ma@opg.cn',
-            contactPhone: '021-88888016',
-        },
-    });
-    const xiamenUniv = await prisma.customer.create({
-        data: {
-            companyName: '厦门大学',
-            industry: '教育',
-            companySize: '大型',
-            contactName: '谢主任',
-            contactTitle: '信息与网络中心主任',
-            contactEmail: 'xie@xmu.edu.cn',
-            contactPhone: '0592-8888017',
-        },
-    });
-    const shanghaiAirport = await prisma.customer.create({
-        data: {
-            companyName: '上海机场',
-            industry: '交通运输',
-            companySize: '大型',
-            contactName: '胡经理',
-            contactTitle: '信息管理部经理',
-            contactEmail: 'hu@shairport.com',
-            contactPhone: '021-88888018',
-        },
-    });
-    const dealA = await prisma.opportunity.create({
-        data: {
-            customerId: icbc.id,
-            opportunityNumber: 'OPP-2023-0001',
-            title: '核心银行系统智能化升级',
-            status: 'Won',
-            estimatedValue: 2800000,
-            probability: 100,
-            salesStage: 'contract',
-            dealType: 'new',
-            deliveryModel: 'onsite',
-            salesOwner: '张伟',
-            expectedCloseDate: new Date('2023-12-01'),
-        },
-    });
-    const contractA = await prisma.contract.create({
-        data: {
-            contractNumber: 'CTR-2024-001',
-            opportunityId: dealA.id,
-            totalContractValue: 2800000,
-            startDate: new Date('2024-01-01'),
-            endDate: new Date('2024-06-30'),
-            isActive: true,
-            status: 'Signed',
-        },
-    });
-    await prisma.milestone.createMany({
-        data: [
-            {
-                contractId: contractA.id,
-                name: '首付款 (30%)',
-                amount: 840000,
-                status: 'Paid',
-                dueDate: new Date('2024-01-05'),
-            },
-            {
-                contractId: contractA.id,
-                name: '一期交付验收',
-                amount: 1120000,
-                status: 'WIP',
-                dueDate: new Date('2024-03-31'),
-            },
-            {
-                contractId: contractA.id,
-                name: '终验尾款',
-                amount: 840000,
-                status: 'Pending',
-                dueDate: new Date('2024-06-30'),
-            },
-        ],
-    });
-    const dealB = await prisma.opportunity.create({
-        data: {
-            customerId: saicMotor.id,
-            opportunityNumber: 'OPP-2024-0001',
-            title: '智能驾驶数据分析平台',
-            status: 'Won',
-            estimatedValue: 1500000,
-            probability: 100,
-            salesStage: 'contract',
-            dealType: 'new',
-            deliveryModel: 'hybrid',
-            salesOwner: '李明',
-            expectedCloseDate: new Date('2024-02-15'),
-        },
-    });
-    const contractB = await prisma.contract.create({
-        data: {
-            contractNumber: 'CTR-2024-002',
-            opportunityId: dealB.id,
-            totalContractValue: 1500000,
-            startDate: new Date('2024-03-01'),
-            endDate: new Date('2024-08-31'),
-            isActive: true,
-            status: 'Draft',
-        },
-    });
-    await prisma.milestone.createMany({
-        data: [
-            {
-                contractId: contractB.id,
-                name: '预付款 (50%)',
-                amount: 750000,
-                status: 'Ready_to_Invoice',
-                dueDate: new Date('2024-03-01'),
-            },
-            {
-                contractId: contractB.id,
-                name: '上线验收款',
-                amount: 750000,
-                status: 'Pending',
-                dueDate: new Date('2024-08-31'),
-            },
-        ],
-    });
-    await prisma.opportunity.create({
-        data: {
-            customerId: gtja.id,
-            opportunityNumber: 'OPP-2024-0002',
-            title: '量化交易策略分析平台',
-            status: 'Proposal',
-            estimatedValue: 980000,
-            probability: 60,
-            salesStage: 'proposal',
-            dealType: 'new',
-            deliveryModel: 'remote',
-            salesOwner: '王芳',
-            expectedCloseDate: new Date('2024-04-01'),
-        },
-    });
-    await prisma.opportunity.create({
-        data: {
-            customerId: sse.id,
-            opportunityNumber: 'OPP-2024-0003',
-            title: '交易监控智能预警系统',
-            status: 'Negotiation',
-            estimatedValue: 1200000,
-            probability: 75,
-            salesStage: 'negotiation',
-            dealType: 'new',
-            deliveryModel: 'onsite',
-            salesOwner: '张伟',
-            expectedCloseDate: new Date('2024-05-15'),
-        },
-    });
-    await prisma.opportunity.create({
-        data: {
-            customerId: chinaMobile.id,
             opportunityNumber: 'OPP-2026-0001',
-            title: 'AI智能运维管理平台',
-            status: 'New',
-            estimatedValue: 650000,
-            probability: 20,
-            salesStage: 'initial_contact',
-            dealType: 'new',
-            salesOwner: '李明',
-            expectedCloseDate: new Date('2026-06-30'),
+            customerId: customer1.id,
+            title: '清算所文档包古典项目',
+            status: 'Negotiation',
+            estimatedValue: 100000,
+            probability: 80,
+            source: '老客户推荐',
+            expectedCloseDate: new Date('2026-02-28'),
+            salesStage: '方案阶段',
+            salesOwner: 'admin',
+            dealType: '软件开发',
+            deliveryModel: '敏捷开发',
+            estimatedEffort: 50,
+            projectBudget: 120000,
+            businessCost: 5000,
+            laborCost: 60000,
+            otherCost: 10000,
+            grossProfit: 25000,
+            profitMargin: 25,
+            businessType: 'PROJECT_DEVELOPMENT',
+            richDescription: '<p>为清算所开发文档管理系统，包括文档上传、分类、检索等功能。</p>',
+            vendors: {
+                connect: [{ id: vendor1.id }],
+            },
         },
     });
-    await prisma.opportunity.create({
+    const opp2 = await prisma.opportunity.create({
         data: {
-            customerId: htfFund.id,
             opportunityNumber: 'OPP-2026-0002',
-            title: '智能投资决策分析系统',
+            customerId: customer2.id,
+            title: '企业云平台建设项目',
+            status: 'Proposal',
+            estimatedValue: 500000,
+            probability: 60,
+            source: '招标',
+            expectedCloseDate: new Date('2026-03-31'),
+            salesStage: '投标阶段',
+            salesOwner: 'admin',
+            dealType: '云服务',
+            deliveryModel: '云部署',
+            estimatedEffort: 100,
+            projectBudget: 600000,
+            businessCost: 20000,
+            laborCost: 300000,
+            otherCost: 50000,
+            grossProfit: 130000,
+            profitMargin: 26,
+            businessType: 'PRODUCT_SALES',
+            richDescription: '<p>为客户搭建企业级云平台，包括IaaS、PaaS层服务。</p>',
+            vendors: {
+                connect: [{ id: vendor2.id }],
+            },
+        },
+    });
+    const opp3 = await prisma.opportunity.create({
+        data: {
+            opportunityNumber: 'OPP-2026-0003',
+            customerId: customer3.id,
+            title: '智能制造系统集成',
             status: 'New',
-            estimatedValue: 420000,
-            probability: 30,
-            salesStage: 'requirement',
-            dealType: 'new',
-            deliveryModel: 'remote',
-            salesOwner: '王芳',
-            expectedCloseDate: new Date('2026-05-01'),
+            estimatedValue: 200000,
+            probability: 40,
+            source: '市场活动',
+            expectedCloseDate: new Date('2026-04-30'),
+            salesStage: '需求分析',
+            salesOwner: 'admin',
+            dealType: '系统集成',
+            deliveryModel: '现场实施',
+            estimatedEffort: 80,
+            projectBudget: 250000,
+            businessCost: 10000,
+            laborCost: 120000,
+            otherCost: 30000,
+            grossProfit: 40000,
+            profitMargin: 20,
+            businessType: 'PROJECT_DEVELOPMENT',
+            richDescription: '<p>为制造企业提供智能制造解决方案，包括MES、WMS等系统。</p>',
+            vendors: {
+                connect: [{ id: vendor1.id }],
+            },
         },
     });
-    const zhangying = await prisma.user.upsert({
-        where: { username: 'zhangying' },
-        update: {},
-        create: {
-            username: 'zhangying',
-            passwordHash: '$2b$10$wT.f.q/o2I.w.R.l.l.l.u.e.r.s.P.a.s.s.w.o.r.d',
-            displayName: 'Zhang Ying',
-            role: 'SALES',
-            email: 'zhangying@example.com',
+    console.log('✓ 创建了 3 个商机');
+    const procurement1 = await prisma.procurement.create({
+        data: {
+            opportunityId: opp1.id,
+            procurementNumber: 'BID-2026-0001',
+            type: 'DirectQuote',
+            status: 'Won',
+            wonPrice: 95000,
+            lineItems: {
+                create: [
+                    {
+                        name: '软件开发服务',
+                        type: 'Service',
+                        amount: 60000,
+                        description: '文档管理系统开发',
+                        sortOrder: 1,
+                    },
+                    {
+                        name: '服务器设备',
+                        type: 'Product',
+                        amount: 35000,
+                        description: '项目所需服务器及配套设备',
+                        sortOrder: 2,
+                    },
+                ],
+            },
         },
     });
-    const hugang = await prisma.user.upsert({
-        where: { username: 'hugang' },
-        update: {},
-        create: {
-            username: 'hugang',
-            passwordHash: '$2b$10$wT.f.q/o2I.w.R.l.l.l.u.e.r.s.P.a.s.s.w.o.r.d',
-            displayName: 'Hu Gang',
-            role: 'MANAGER',
-            email: 'hugang@example.com',
+    const procurement2 = await prisma.procurement.create({
+        data: {
+            opportunityId: opp2.id,
+            procurementNumber: 'BID-2026-0002',
+            type: 'PublicTender',
+            status: 'Submitted',
+            wonPrice: 480000,
+            lineItems: {
+                create: [
+                    {
+                        name: '云平台基础设施',
+                        type: 'Product',
+                        amount: 300000,
+                        description: '云服务器、存储、网络等基础设施',
+                        sortOrder: 1,
+                    },
+                    {
+                        name: '平台开发与集成',
+                        type: 'Service',
+                        amount: 150000,
+                        description: '云平台开发、系统集成服务',
+                        sortOrder: 2,
+                    },
+                    {
+                        name: '技术支持服务',
+                        type: 'Service',
+                        amount: 30000,
+                        description: '一年技术支持与运维服务',
+                        sortOrder: 3,
+                    },
+                ],
+            },
         },
     });
-    const salt = await bcrypt.genSalt();
-    const adminPassword = await bcrypt.hash('admin123', salt);
-    const admin = await prisma.user.upsert({
-        where: { username: 'admin' },
-        update: {
-            passwordHash: adminPassword,
-        },
-        create: {
-            username: 'admin',
-            passwordHash: adminPassword,
-            displayName: 'System Admin',
-            role: 'ADMIN',
-            email: 'admin@example.com',
+    console.log('✓ 创建了 2 个投标记录（含分项报价）');
+    const contract1 = await prisma.contract.create({
+        data: {
+            opportunityId: opp1.id,
+            contractNumber: 'CNT-2026-0001',
+            status: 'Signed',
+            totalContractValue: 95000,
+            startDate: new Date('2026-01-20'),
+            endDate: new Date('2026-06-30'),
+            paymentTerms: '3-3-3-1',
         },
     });
-    console.log('Seeding finished. New users created: zhangying, hugang, admin');
+    console.log('✓ 创建了 1 个主要合同');
+    const project1 = await prisma.project.create({
+        data: {
+            contractId: contract1.id,
+            status: 'Execution',
+            startDate: new Date('2026-01-20'),
+            endDate: new Date('2026-06-30'),
+            laborCost: 20000,
+            outsourceCost: 5000,
+            complexity: 'Medium',
+            fundTransactions: {
+                create: [
+                    {
+                        type: 'ADVANCE',
+                        description: '服务器采购垫资',
+                        totalAmount: 15000,
+                        status: 'ACTIVE',
+                        transactionDate: new Date('2026-01-25'),
+                        partyName: '阿里云',
+                        expectedDuration: 30,
+                        costRate: 0.01,
+                    },
+                    {
+                        type: 'PASS_THROUGH',
+                        description: 'Oracle 数据库授权',
+                        totalAmount: 8000,
+                        status: 'ACTIVE',
+                        transactionDate: new Date('2026-02-10'),
+                        partyName: 'Oracle代理商',
+                    },
+                    {
+                        type: 'SIMPLE_PASS',
+                        description: '临时测试设备租赁',
+                        totalAmount: 2000,
+                        status: 'ACTIVE',
+                        transactionDate: new Date('2026-02-15'),
+                        partyName: '租赁公司A',
+                    }
+                ]
+            }
+        },
+    });
+    console.log('✓ 创建了 1 个交付项目及相关资金交易');
+    console.log('\n✅ 测试数据创建完成！');
+    console.log('\n数据摘要:');
+    console.log(`- 客户: 3 个`);
+    console.log(`- 厂商: 2 个`);
+    console.log(`- 商机: 3 个`);
+    console.log(`- 投标: 2 个`);
+    console.log(`- 分项报价: 5 项`);
 }
 main()
     .catch((e) => {
-    console.error(e);
+    console.error('创建测试数据时出错:', e);
     process.exit(1);
 })
     .finally(async () => {

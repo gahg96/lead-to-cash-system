@@ -10,6 +10,12 @@ export declare enum ProcurementStatus {
 declare const UpdateProcurementDto_base: import("@nestjs/mapped-types").MappedType<Partial<CreateProcurementDto>>;
 export declare class UpdateProcurementDto extends UpdateProcurementDto_base {
     status?: ProcurementStatus;
-    resultNote?: string;
+    wonPrice?: number;
+    lineItems?: {
+        name: string;
+        type: string;
+        amount: number;
+        description?: string;
+    }[];
 }
 export {};

@@ -35,7 +35,7 @@ export function NewLeadDialog() {
     const { t } = useI18n();
     const router = useRouter();
 
-    const form = useForm<LeadFormValues>({
+    const form = useForm({
         resolver: zodResolver(leadSchema),
         defaultValues: {
             companyName: "",
@@ -122,6 +122,7 @@ export function NewLeadDialog() {
                                             type="number"
                                             placeholder="10000"
                                             {...field}
+                                            value={(field.value as any) || ""}
                                             onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                         />
                                     </FormControl>

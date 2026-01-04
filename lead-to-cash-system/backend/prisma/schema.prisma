@@ -22,6 +22,7 @@ model Customer {
   createdAt    DateTime @default(now()) @map("created_at")
 
   opportunities Opportunity[]
+  vendors       Vendor[]
 
   @@map("customers")
 }
@@ -56,6 +57,9 @@ model Opportunity {
   grossProfit       Decimal? @map("gross_profit")     // 毛利润
   profitMargin      Decimal? @map("profit_margin")    // 毛利率(%)
   
+  // Business Type Classification
+  businessType      BusinessType? @map("business_type") // 业务类型
+  
   createdAt         DateTime @default(now()) @map("created_at")
 
   customer     Customer      @relation(fields: [customerId], references: [id])
@@ -63,6 +67,7 @@ model Opportunity {
   followUps    FollowUp[]
   attachments  Attachment[]
   procurements Procurement[]
+  vendors      Vendor[]
 
   @@map("opportunities")
 }
@@ -71,8 +76,20 @@ enum OpportunityStatus {
   New
   Proposal
   Negotiation
+  Bidding         // 投标中
+  Comparison      // 比价
+  SingleSource    // 单一来源
+  Sourcing        // 寻源
   Won
   Lost
+}
+
+enum BusinessType {
+  PROJECT_DEVELOPMENT  // 项目开发
+  OUTSOURCING         // 外包人力
+  PRODUCT_SALES       // 产品销售
+  CONSULTING          // 咨询服务
+  OTHER               // 其他
 }
 
 // 3. Contracts: 合同
@@ -85,8 +102,23 @@ model Contract {
   totalContractValue Decimal  @map("total_contract_value")
   paymentTerms       String?  @map("payment_terms")       // 付款条款概要
   
+  // Pricing Information (from Procurement/Opportunity)
+  wonPrice           Decimal? @map("won_price")           // 中标金额
+  estimatedValue     Decimal? @map("estimated_value")     // 预估金额
+  
   startDate          DateTime? @map("start_date")
   endDate            DateTime? @map("end_date")
+  
+  // Customer Contact Information (from Customer)
+  customerContactName  String? @map("customer_contact_name")
+  customerContactPhone String? @map("customer_contact_phone")
+  customerContactEmail String? @map("customer_contact_email")
+  customerContactTitle String? @map("customer_contact_title")
+  
+  // Vendor Contact Information
+  vendorName         String? @map("vendor_name")
+  vendorContactName  String? @map("vendor_contact_name")
+  vendorContactPhone String? @map("vendor_contact_phone")
   
   // 风险与审批
   riskAssessment     String?  @map("risk_assessment")     // 风险评估
@@ -96,6 +128,18 @@ model Contract {
   sla                 String?
   liability           String?
   paymentTermsDetails String?  @map("payment_terms_details")
+  
+  // Payment & Financial Information
+  paymentAccount      String?  @map("payment_account")        // 收款账号
+  bankName            String?  @map("bank_name")              // 开户银行
+  accountName         String?  @map("account_name")           // 账户名称
+  
+  // Contract Terms
+  penalties           String?                                 // 罚则/违约条款
+  warranty            String?                                 // 质保条款
+  confidentiality     String?                                 // 保密条款
+  disputeResolution   String?  @map("dispute_resolution")     // 争议解决方式
+  specialTerms        String?  @map("special_terms")          // 特殊条款
 
   drafterId          String?  @map("drafter_id")          // 拟稿人
   approverId         String?  @map("approver_id")         // 审批人
@@ -108,10 +152,45 @@ model Contract {
   approver    User?       @relation("ContractApprover", fields: [approverId], references: [id])
   milestones  Milestone[]
   documents   ContractDocument[]
+  lineItems   ContractLineItem[]  // 合同分项明细
   project     Project?
   invoices    Invoice[]
 
   @@map("contracts")
+}
+
+// 12a. ContractLineItem: 合同分项明细
+model ContractLineItem {
+  id              String   @id @default(uuid())
+  contractId      String   @map("contract_id")
+  
+  // 分项信息
+  itemName        String   @map("item_name")          // 项目名称
+  itemType        LineItemType @map("item_type")      // 产品/服务
+  description     String?                             // 详细描述
+  
+  // 金额信息
+  quantity        Decimal  @default(1)                // 数量
+  unitPrice       Decimal  @map("unit_price")         // 单价（不含税）
+  taxRate         Decimal  @map("tax_rate")           // 税率 (0.13, 0.06, 0)
+  
+  // 计算字段
+  subtotal        Decimal                             // 小计 = quantity * unitPrice
+  taxAmount       Decimal  @map("tax_amount")         // 税额 = subtotal * taxRate
+  totalAmount     Decimal  @map("total_amount")       // 含税总额 = subtotal + taxAmount
+  
+  sortOrder       Int      @default(0) @map("sort_order") // 排序
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  @@map("contract_line_items")
+}
+
+enum LineItemType {
+  PRODUCT   // 产品 - 通常 13% 税率
+  SERVICE   // 服务 - 通常 6% 或 0% 税率
 }
 
 // 12. ContractDocument: 合同附件
@@ -217,6 +296,12 @@ model Procurement {
   depositAmount       Decimal? @map("deposit_amount")     // 投标保证金
   notes               String?                             // 备注
   resultNote          String?  @map("result_note")        // 结果说明
+  wonPrice            Decimal? @map("won_price")          // 中标金额 (实际)
+  
+  // 投标费用
+  tenderFee           Decimal? @map("tender_fee")         // 标书费
+  agencyFee           Decimal? @map("agency_fee")         // 中标代理费
+  printingFee         Decimal? @map("printing_fee")       // 打印费
   
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
@@ -224,8 +309,27 @@ model Procurement {
   opportunity         Opportunity @relation(fields: [opportunityId], references: [id])
   documents           ProcurementDocument[]
   tasks               BiddingTask[]
+  lineItems           ProcurementLineItem[]
 
   @@map("procurements")
+}
+
+// 7a. ProcurementLineItem: 投标分项报价
+model ProcurementLineItem {
+  id            String   @id @default(uuid())
+  procurementId String   @map("procurement_id")
+  
+  name          String
+  type          String   // Product, Service, etc.
+  amount        Decimal
+  description   String?
+  
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  procurement   Procurement @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+  
+  @@map("procurement_line_items")
 }
 
 // 8. BiddingTask: 投标材料任务
@@ -333,11 +437,12 @@ model AuditLog {
 }
 
 enum ContractStatus {
-  Draft             // 草稿
-  PendingApproval   // 待审批
-  Approved          // 已批准
-  Rejected          // 已驳回
-  Signed            // 已签署 (执行中)
+  Draft             // 草稿 (起草合同)
+  CustomerReview    // 客户审核
+  InternalReview    // 我方审核
+  CustomerSeal      // 客户盖章
+  InternalSeal      // 我方盖章 (签订结束前一步)
+  Signed            // 签订结束
   Terminated        // 已终止
 }
 
@@ -364,6 +469,11 @@ model Project {
   
   isDelayed          Boolean   @default(false) @map("is_delayed")
   
+  // Invoicing tracking
+  requiresInvoicing     Boolean   @default(true) @map("requires_invoicing")
+  invoicingCompleted    Boolean   @default(false) @map("invoicing_completed")
+  invoicingCompletedAt  DateTime? @map("invoicing_completed_at")
+  
   startDate          DateTime? @map("start_date")
   endDate            DateTime? @map("endDate")
   description        String?
@@ -376,6 +486,7 @@ model Project {
   meetings  ProjectMeeting[]
   risks     ProjectRisk[]
   invoices  Invoice[]
+  fundTransactions FundTransaction[]
 
   @@map("projects")
 }
@@ -547,6 +658,10 @@ model Payment {
   status          PaymentStatus @default(Confirmed)
   remarks         String?
   
+  // Receipt File Storage
+  filePath        String?  @map("file_path")    // 电子回单文件路径
+  fileName        String?  @map("file_name")    // 电子回单文件名
+  
   // Relations
   invoice         Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   
@@ -582,4 +697,149 @@ model MilestoneTemplate {
   updatedAt   DateTime @updatedAt @map("updated_at")
   
   @@map("milestone_templates")
+}
+
+// Fund Management System
+
+enum FundTransactionType {
+  ADVANCE       // 垫资
+  PASS_THROUGH  // 纯过单(含费)
+  SIMPLE_PASS   // 普通过单
+  BOOST         // 做业绩
+  EXPENSE_ONLY  // 纯处理费用
+  WITHDRAWAL    // 提现
+}
+
+enum FundTransactionStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  AUDIT_PENDING
+  ARCHIVED
+}
+
+model FundTransaction {
+  id          String                @id @default(uuid())
+  project     Project?              @relation(fields: [projectId], references: [id])
+  projectId   String?
+  type        FundTransactionType
+  status      FundTransactionStatus @default(DRAFT)
+  description String?
+  transactionDate DateTime? @map("transaction_date") // 交易日期
+  partyName       String?   @map("party_name")       // 交易方名称 (手动填写)
+  
+  // 核心财务摘要
+  totalAmount      Decimal   @default(0) // 总交易额
+  principalAmount  Decimal   @default(0) // 垫资本金 (仅垫资)
+  expectedDuration Int?      // 预计占用天数 OR 月数
+  
+  // 费率配置 (Snapshot)
+  costRuleType     String?   // 'MONTHLY', 'FIXED'
+  costRate         Decimal?  // 资金成本率
+  passThreshold    Decimal?  // 过单费率/保留利润率
+  
+  allocations CapitalAllocation[]
+  collections RevenueCollection[]
+  payouts     ExpensePayout[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+  @@map("fund_transactions")
+}
+
+model CapitalAllocation {
+  id            String          @id @default(uuid())
+  transaction   FundTransaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  
+  vendorName    String          // 供应商名称 (暂存名称)
+  amount        Decimal
+  paymentDate   DateTime
+  
+  // 实际成本计算
+  actualDuration Int?           // 实际占用天数
+  interestCost   Decimal        @default(0) // 计算出的利息成本
+  
+  createdAt     DateTime        @default(now())
+  
+  @@map("capital_allocations")
+}
+
+model RevenueCollection {
+  id            String          @id @default(uuid())
+  transaction   FundTransaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  
+  customerName  String
+  amount        Decimal
+  receivedDate  DateTime
+  
+  createdAt     DateTime        @default(now())
+  
+  @@map("revenue_collections")
+}
+
+model ExpensePayout {
+  id            String          @id @default(uuid())
+  transaction   FundTransaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  
+  beneficiary   String          // 受益人
+  baseAmount    Decimal         // 原始计算基数 (差额)
+  
+  // 计算规则
+  payoutType     String         // 'PRODUCT_13', 'SERVICE_6', 'SERVICE_0'
+  conversionRate Decimal        // 折算率 (0.8, 0.88 等)
+  
+  netAmount      Decimal        // 实际打款额
+  status         String         // 'PENDING', 'PAID'
+  
+  createdAt     DateTime        @default(now())
+  
+  @@map("expense_payouts")
+}
+
+// 13. Vendors: 厂商管理
+model Vendor {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  type         String?  // 厂商类型
+  industry     String?  // 行业
+  region       String?  // 区域
+  brand        String?  // 品牌/产品名称
+  
+  // Parent-Child Relation
+  parentId     String?   @map("parent_id")
+  parent       Vendor?   @relation("VendorHierarchy", fields: [parentId], references: [id])
+  children     Vendor[]  @relation("VendorHierarchy")
+
+  contactName  String?  @map("contact_name")
+  contactPhone String?  @map("contact_phone")
+  description  String?
+  
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  opportunities Opportunity[]
+  customers     Customer[]
+
+  @@map("vendors")
+}
+
+// 14. Payment Accounts: 收款账户配置
+model PaymentAccount {
+  id           String   @id @default(uuid())
+  accountName  String   @map("account_name")   // 账户名称（公司全称）
+  bankName     String   @map("bank_name")      // 开户银行
+  accountNumber String  @map("account_number") // 账号
+  isDefault    Boolean  @default(false) @map("is_default") // 是否默认
+  isActive     Boolean  @default(true) @map("is_active")   // 是否启用
+  description  String?                         // 备注说明
+  
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("payment_accounts")
 }

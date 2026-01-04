@@ -62,14 +62,17 @@ export class UsersService implements OnModuleInit {
         return this.prisma.user.findUnique({ where: { id } });
     }
 
-    async create(data: Prisma.UserCreateInput): Promise<User> {
-        // Assuming data.passwordHash contains the RAW password here for simplicity in initial call
-        // In a real DTO we would separate them
+    async create(data: any): Promise<User> {
         const salt = await bcrypt.genSalt();
-        const hash = await bcrypt.hash(data.passwordHash, salt);
+        // Handle both password (DTO) and passwordHash (Seeding)
+        const passwordToHash = data.password || data.passwordHash;
+        const hash = await bcrypt.hash(passwordToHash, salt);
+
+        const { password, ...rest } = data; // Remove password field if exists
+
         return this.prisma.user.create({
             data: {
-                ...data,
+                ...rest,
                 passwordHash: hash,
             }
         });
@@ -77,12 +80,42 @@ export class UsersService implements OnModuleInit {
 
     async findAll(): Promise<User[]> {
         try {
-            const users = await this.prisma.user.findMany();
-            // Ensure plain objects for serialization stability
-            return JSON.parse(JSON.stringify(users));
+            const users = await this.prisma.user.findMany({
+                orderBy: { createdAt: 'desc' }
+            });
+            // Ensure plain objects for serialization stability and remove passwords
+            return JSON.parse(JSON.stringify(users.map(u => {
+                const { passwordHash, ...rest } = u;
+                return rest;
+            })));
         } catch (error) {
             console.error('UsersService.findAll error:', error);
             throw error;
         }
+    }
+
+    async update(id: string, data: any): Promise<User> {
+        const updateData: any = { ...data };
+
+        if (updateData.password) {
+            const salt = await bcrypt.genSalt();
+            updateData.passwordHash = await bcrypt.hash(updateData.password, salt);
+            delete updateData.password;
+        }
+
+        const user = await this.prisma.user.update({
+            where: { id },
+            data: updateData
+        });
+
+        // Remove sensitive data
+        const { passwordHash, ...rest } = user;
+        return rest as any;
+    }
+
+    async remove(id: string): Promise<User> {
+        return this.prisma.user.delete({
+            where: { id }
+        });
     }
 }

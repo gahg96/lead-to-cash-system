@@ -33,6 +33,8 @@ class CreateOpportunityDto {
     otherCost;
     grossProfit;
     profitMargin;
+    businessType;
+    vendorIds;
 }
 exports.CreateOpportunityDto = CreateOpportunityDto;
 __decorate([
@@ -140,4 +142,14 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], CreateOpportunityDto.prototype, "profitMargin", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateOpportunityDto.prototype, "businessType", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], CreateOpportunityDto.prototype, "vendorIds", void 0);
 //# sourceMappingURL=create-opportunity.dto.js.map

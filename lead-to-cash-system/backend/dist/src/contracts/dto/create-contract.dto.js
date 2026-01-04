@@ -23,6 +23,14 @@ class CreateContractDto {
     sla;
     liability;
     paymentTermsDetails;
+    paymentAccount;
+    bankName;
+    accountName;
+    penalties;
+    warranty;
+    confidentiality;
+    disputeResolution;
+    specialTerms;
     drafterId;
 }
 exports.CreateContractDto = CreateContractDto;
@@ -37,7 +45,7 @@ __decorate([
     __metadata("design:type", String)
 ], CreateContractDto.prototype, "contractNumber", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateContractDto.prototype, "totalContractValue", void 0);
@@ -79,8 +87,50 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateContractDto.prototype, "paymentTermsDetails", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "paymentAccount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "bankName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "accountName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "penalties", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "warranty", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "confidentiality", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "disputeResolution", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateContractDto.prototype, "specialTerms", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

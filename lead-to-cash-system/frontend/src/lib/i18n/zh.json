@@ -1,6 +1,6 @@
 {
     "dashboard": {
-        "title": "老板仪表盘",
+        "title": "RightMagic LTC",
         "subtitle": "欢迎回来。这是您的现金流和项目概览。",
         "newLead": "新建线索",
         "cashInBank": "账户资金",
@@ -74,6 +74,7 @@
             "companyName": "例如：华为技术有限公司",
             "selectIndustry": "选择行业",
             "selectSize": "选择规模",
+            "selectBusinessType": "选择业务类型",
             "contactName": "张伟",
             "contactTitle": "技术总监",
             "contactPhone": "+86 138 0000 0000",
@@ -106,6 +107,7 @@
         "dealType": "项目类型",
         "deliveryModel": "交付模式",
         "estimatedEffort": "预计人天",
+        "businessType": "业务类型",
         "richDescription": "详细描述",
         "create": "创建线索",
         "creating": "创建中...",
@@ -203,11 +205,15 @@
     },
     "options": {
         "status": {
-            "new": "新建",
-            "proposal": "方案",
-            "negotiation": "谈判",
-            "won": "赢单",
-            "lost": "输单"
+            "New": "新建",
+            "Proposal": "提案中",
+            "Negotiation": "谈判中",
+            "Bidding": "投标中",
+            "Comparison": "比价",
+            "SingleSource": "单一来源",
+            "Sourcing": "寻源",
+            "Won": "已赢单",
+            "Lost": "已丢单"
         },
         "salesStage": {
             "initial_contact": "初步接触",
@@ -240,10 +246,44 @@
             "technology": "科技",
             "healthcare": "医疗",
             "other": "其他"
+        },
+        "businessType": {
+            "PROJECT_DEVELOPMENT": "项目开发",
+            "OUTSOURCING": "外包人力",
+            "PRODUCT_SALES": "产品销售",
+            "CONSULTING": "咨询服务",
+            "OTHER": "其他"
+        },
+        "companySize": {
+            "Small": "小型企业 (1-50)",
+            "Medium": "中型企业 (51-200)",
+            "Large": "大型企业 (201-1000)",
+            "Enterprise": "超大型企业 (1000+)"
+        },
+        "procurement": {
+            "type": {
+                "DirectQuote": "单一来源 - 直接报价",
+                "Negotiation": "商务谈判",
+                "Comparison": "比选",
+                "Consultation": "磋商",
+                "PublicTender": "公开招标"
+            },
+            "status": {
+                "Draft": "草稿",
+                "Preparing": "准备中",
+                "Submitted": "已提交",
+                "InProgress": "评审中",
+                "Won": "中标",
+                "Lost": "未中标"
+            },
+            "fees": {
+                "tenderFee": "标书费",
+                "agencyFee": "中标代理费",
+                "bondAmount": "投标保证金",
+                "printingFee": "打印费",
+                "total": "费用合计"
+            }
         }
-    },
-    "common": {
-        "back": "返回"
     },
     "project": {
         "title": "项目交付管理",
@@ -261,7 +301,8 @@
             "resources": "资源分配",
             "communication": "沟通计划",
             "risks": "风险跟踪",
-            "profit": "利润分析"
+            "profit": "利润分析",
+            "funds": "资金管理"
         },
         "fields": {
             "financials": "项目财务",
@@ -358,6 +399,62 @@
             "action": "操作",
             "invoiceNumber": "发票号",
             "date": "日期"
+        },
+        "financialOps": {
+            "title": "项目财务运营",
+            "subtitle": "统筹管理项目收入与支出明细。",
+            "cards": {
+                "netProfit": "预期净利润",
+                "margin": "利润率",
+                "totalIncome": "总收入 (含税)",
+                "totalIncomeDesc": "/ 合同总额",
+                "totalExpense": "总支出",
+                "totalExpenseDesc": "含人力、采购及资金成本",
+                "fundsAdvanced": "资金垫付",
+                "fundsAdvancedDesc": "当前垫资总额"
+            },
+            "ledger": {
+                "title": "支出明细",
+                "subtitle": "包括人力、采购、及所有交易支出",
+                "quickAdd": "新增交易",
+                "table": {
+                    "date": "日期",
+                    "type": "类型",
+                    "party": "交易方",
+                    "desc": "描述",
+                    "amount": "金额",
+                    "action": "操作",
+                    "noData": "暂无交易记录"
+                },
+                "types": {
+                    "advance": "垫资",
+                    "passthrough": "过单",
+                    "simplePass": "普通过单",
+                    "boost": "做业绩",
+                    "expenseOnly": "纯费用"
+                }
+            },
+            "groups": {
+                "labor": "正常人力投入",
+                "purchase": "第三方产品购买",
+                "ledger": "交易明细",
+                "other": "其他费用",
+                "remarks": "财务备注"
+            },
+            "fields": {
+                "laborCost": "人力成本",
+                "emergencySupport": "紧急支持费",
+                "projectComplexity": "项目复杂度",
+                "outsource": "外包成本",
+                "equipment": "第三方设备",
+                "software": "软件费用",
+                "travel": "差旅费",
+                "misc": "其他杂费",
+                "formula": "公式: 合同额 × {{rate}}% (复杂度系数)",
+                "autoCalc": "自动计算",
+                "remarksPlaceholder": "请输入财务相关的备注说明...",
+                "noRemarks": "无备注"
+            }
         }
     },
     "contract": {
@@ -391,6 +488,15 @@
             "processedBy": "处理人",
             "rejectedBy": "驳回人"
         },
+        "scope": "交付范围",
+        "sla": "服务等级协议",
+        "liability": "责任与质保",
+        "paymentTerms": "付款条款",
+        "actions": {
+            "manageStatus": "管理合同状态",
+            "manageStatusDesc": "强制修改合同状态。请注意，这可能会跳过必要的审批流程。",
+            "Placeholder": "选择新状态"
+        },
         "milestones": {
             "title": "执行与付款里程碑",
             "subtitle": "根据付款条款生成",
@@ -421,6 +527,80 @@
             "download": "下载",
             "uploadedBy": "上传人",
             "empty": "暂无附件"
+        },
+        "status": {
+            "Draft": "草稿",
+            "CustomerReview": "客户审核",
+            "InternalReview": "我方审核",
+            "CustomerSeal": "客户盖章",
+            "InternalSeal": "我方盖章",
+            "Signed": "已签订",
+            "Terminated": "已终止"
+        },
+        "analytics": {
+            "totalValue": "合同总金额",
+            "totalValueDesc": "所有合同金额总和",
+            "signedValue": "已签订金额",
+            "signedValueDesc": "状态为“已签订”的合同",
+            "signingRate": "签约率",
+            "signingRateDesc": "按合同数量计算",
+            "topDrafter": "最佳拟稿人",
+            "topDrafterDesc": "签订合同数量最多",
+            "statusDist": "合同状态分布 (数量)",
+            "valueDist": "合同金额分布 (状态)",
+            "drafterRanking": "拟稿人业绩排行"
         }
+    },
+    "funds": {
+        "transactionNotFound": "未找到交易",
+        "noProjectLinked": "无关联项目",
+        "totalIn": "收入总额",
+        "totalOut": "支出总额",
+        "costsPayouts": "成本与支出",
+        "netMargin": "净利润",
+        "cost": "成本",
+        "fee": "费用",
+        "financialStatement": "财务报表",
+        "fundFlow": "资金流向",
+        "detailedStatement": "详细报表",
+        "reconciliation": "所有资金收支的对账",
+        "revenueCollections": "收入明细",
+        "date": "日期",
+        "customer": "客户",
+        "amount": "金额",
+        "totalCollections": "收入合计",
+        "capitalAllocations": "资金分配",
+        "vendor": "供应商",
+        "totalAllocations": "支出合计",
+        "expensePayouts": "商务费用支出",
+        "beneficiary": "受益人",
+        "type": "类型",
+        "baseAmt": "基数",
+        "rate": "比例",
+        "netPayout": "实付",
+        "totalPayouts": "费用合计",
+        "calculatedMargin": "计算净利润",
+        "flowDiagram": "资金流向图"
+    },
+    "opportunities": {
+        "subtitle": "管理您的销售渠道并跟踪交易",
+        "searchPlaceholder": "搜索商机...",
+        "noData": "暂无商机数据"
+    },
+    "status": {
+        "new": "新建",
+        "proposal": "提案",
+        "negotiation": "谈判",
+        "won": "赢单",
+        "lost": "输单"
+    },
+    "common": {
+        "back": "返回",
+        "loading": "加载中...",
+        "notDefined": "未定义",
+        "saved": "已保存",
+        "save": "保存",
+        "error": "错误",
+        "filter": "筛选"
     }
 }

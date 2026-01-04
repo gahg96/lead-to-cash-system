@@ -20,4 +20,6 @@ export declare class CreateOpportunityDto {
     otherCost?: number;
     grossProfit?: number;
     profitMargin?: number;
+    businessType?: 'PROJECT_DEVELOPMENT' | 'OUTSOURCING' | 'PRODUCT_SALES' | 'CONSULTING' | 'OTHER';
+    vendorIds?: string[];
 }

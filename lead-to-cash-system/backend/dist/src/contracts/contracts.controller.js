@@ -21,6 +21,7 @@ const contracts_service_1 = require("./contracts.service");
 const create_contract_dto_1 = require("./dto/create-contract.dto");
 const update_contract_dto_1 = require("./dto/update-contract.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const client_1 = require("@prisma/client");
 let ContractsController = class ContractsController {
     contractsService;
     constructor(contractsService) {
@@ -30,8 +31,20 @@ let ContractsController = class ContractsController {
             fs.mkdirSync('./uploads/contracts', { recursive: true });
         }
     }
-    create(createContractDto, req) {
-        return this.contractsService.create(createContractDto, req.user.userId);
+    async create(createContractDto, req) {
+        try {
+            console.log('[ContractsController] Received create request');
+            console.log('[ContractsController] DTO:', JSON.stringify(createContractDto, null, 2));
+            console.log('[ContractsController] User:', req.user);
+            const result = await this.contractsService.create(createContractDto, req.user.userId);
+            console.log('[ContractsController] Contract created successfully');
+            return result;
+        }
+        catch (error) {
+            console.error('[ContractsController] ERROR:', error.message);
+            console.error('[ContractsController] Stack:', error.stack);
+            throw error;
+        }
     }
     findAll() {
         return this.contractsService.findAll();
@@ -42,17 +55,23 @@ let ContractsController = class ContractsController {
     update(id, updateContractDto) {
         return this.contractsService.update(id, updateContractDto);
     }
-    submit(id) {
-        return this.contractsService.submitForApproval(id);
+    submitCustomer(id) {
+        return this.contractsService.submitForCustomerReview(id);
     }
-    approve(id, req) {
-        return this.contractsService.approve(id, req.user.userId);
+    passCustomer(id) {
+        return this.contractsService.passCustomerReview(id);
     }
-    reject(id, req) {
-        return this.contractsService.reject(id, req.user.userId);
+    passInternal(id) {
+        return this.contractsService.passInternalReview(id);
     }
-    sign(id) {
-        return this.contractsService.sign(id);
+    customerSeal(id) {
+        return this.contractsService.customerSeal(id);
+    }
+    internalSeal(id) {
+        return this.contractsService.internalSeal(id);
+    }
+    forceUpdateStatus(id, status) {
+        return this.contractsService.forceUpdateStatus(id, status);
     }
     remove(id) {
         return this.contractsService.remove(id);
@@ -73,6 +92,9 @@ let ContractsController = class ContractsController {
     updateMilestone(mid, data) {
         return this.contractsService.updateMilestone(mid, data);
     }
+    initializeDefaultMilestones(id) {
+        return this.contractsService.initializeDefaultMilestones(id);
+    }
     deleteMilestone(mid) {
         return this.contractsService.deleteMilestone(mid);
     }
@@ -84,7 +106,7 @@ __decorate([
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_contract_dto_1.CreateContractDto, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], ContractsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
@@ -108,35 +130,48 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ContractsController.prototype, "update", null);
 __decorate([
-    (0, common_1.Post)(':id/submit'),
+    (0, common_1.Post)(':id/submit-customer'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
-], ContractsController.prototype, "submit", null);
+], ContractsController.prototype, "submitCustomer", null);
 __decorate([
-    (0, common_1.Post)(':id/approve'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", void 0)
-], ContractsController.prototype, "approve", null);
-__decorate([
-    (0, common_1.Post)(':id/reject'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", void 0)
-], ContractsController.prototype, "reject", null);
-__decorate([
-    (0, common_1.Post)(':id/sign'),
+    (0, common_1.Post)(':id/pass-customer'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
-], ContractsController.prototype, "sign", null);
+], ContractsController.prototype, "passCustomer", null);
+__decorate([
+    (0, common_1.Post)(':id/pass-internal'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ContractsController.prototype, "passInternal", null);
+__decorate([
+    (0, common_1.Post)(':id/customer-seal'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ContractsController.prototype, "customerSeal", null);
+__decorate([
+    (0, common_1.Post)(':id/internal-seal'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ContractsController.prototype, "internalSeal", null);
+__decorate([
+    (0, common_1.Patch)(':id/status'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ContractsController.prototype, "forceUpdateStatus", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),
@@ -178,6 +213,13 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], ContractsController.prototype, "updateMilestone", null);
+__decorate([
+    (0, common_1.Post)(':id/milestones/defaults'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ContractsController.prototype, "initializeDefaultMilestones", null);
 __decorate([
     (0, common_1.Delete)('milestones/:mid'),
     __param(0, (0, common_1.Param)('mid')),

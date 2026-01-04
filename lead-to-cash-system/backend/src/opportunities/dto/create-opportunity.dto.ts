@@ -86,4 +86,13 @@ export class CreateOpportunityDto {
     @IsNumber()
     @IsOptional()
     profitMargin?: number;    // 毛利率
+
+    // Business Type Classification
+    @IsString()
+    @IsOptional()
+    businessType?: 'PROJECT_DEVELOPMENT' | 'OUTSOURCING' | 'PRODUCT_SALES' | 'CONSULTING' | 'OTHER';
+
+    @IsOptional()
+    @IsString({ each: true })
+    vendorIds?: string[];
 }

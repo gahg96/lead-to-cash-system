@@ -24,7 +24,8 @@ var ProcurementStatus;
 })(ProcurementStatus || (exports.ProcurementStatus = ProcurementStatus = {}));
 class UpdateProcurementDto extends (0, mapped_types_1.PartialType)(create_procurement_dto_1.CreateProcurementDto) {
     status;
-    resultNote;
+    wonPrice;
+    lineItems;
 }
 exports.UpdateProcurementDto = UpdateProcurementDto;
 __decorate([
@@ -34,7 +35,11 @@ __decorate([
 ], UpdateProcurementDto.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], UpdateProcurementDto.prototype, "resultNote", void 0);
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateProcurementDto.prototype, "wonPrice", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Array)
+], UpdateProcurementDto.prototype, "lineItems", void 0);
 //# sourceMappingURL=update-procurement.dto.js.map

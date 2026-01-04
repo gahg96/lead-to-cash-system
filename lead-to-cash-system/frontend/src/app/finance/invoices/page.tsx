@@ -5,42 +5,93 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, FileText, ArrowLeft } from 'lucide-react';
+import { Search, FileText, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+
+interface GroupedInvoices {
+    projectId: string;
+    projectName: string;
+    customerName: string;
+    contractValue: number;
+    invoices: any[];
+    totalInvoiced: number;
+    totalCollected: number;
+}
 
 export default function InvoicesPage() {
     const [invoices, setInvoices] = useState<any[]>([]);
-    const [filteredInvoices, setFilteredInvoices] = useState<any[]>([]);
+    const [activeInvoices, setActiveInvoices] = useState<any[]>([]);
+    const [cancelledInvoices, setCancelledInvoices] = useState<any[]>([]);
+    const [groupedInvoices, setGroupedInvoices] = useState<GroupedInvoices[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
+    const [showCancelled, setShowCancelled] = useState(false);
 
     useEffect(() => {
         fetchInvoices();
     }, []);
 
     useEffect(() => {
-        if (searchTerm) {
-            const filtered = invoices.filter(inv =>
-                inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                inv.contract?.opportunity?.customer?.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredInvoices(filtered);
-        } else {
-            setFilteredInvoices(invoices);
-        }
-    }, [searchTerm, invoices]);
+        // Separate active and cancelled invoices
+        const active = invoices.filter(inv => inv.status !== 'Cancelled');
+        const cancelled = invoices.filter(inv => inv.status === 'Cancelled');
+
+        setActiveInvoices(active);
+        setCancelledInvoices(cancelled);
+
+        // Group active invoices by project
+        const grouped = groupInvoicesByProject(active);
+        setGroupedInvoices(grouped);
+    }, [invoices]);
 
     const fetchInvoices = async () => {
         try {
             const data = await api.get('/finance/invoices');
             setInvoices(data);
-            setFilteredInvoices(data);
         } catch (error) {
             console.error('Failed to fetch invoices:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const groupInvoicesByProject = (invoiceList: any[]): GroupedInvoices[] => {
+        const projectMap = new Map<string, GroupedInvoices>();
+
+        invoiceList.forEach(invoice => {
+            const groupingKey = invoice.contract?.id || 'unknown';
+            const projectName = invoice.contract?.contractNumber || '未知项目';
+            const customerName = invoice.contract?.opportunity?.customer?.companyName || '未知客户';
+            const contractValue = Number(invoice.contract?.totalContractValue || 0);
+
+            if (!projectMap.has(groupingKey)) {
+                projectMap.set(groupingKey, {
+                    projectId: groupingKey,
+                    projectName,
+                    customerName,
+                    contractValue,
+                    invoices: [],
+                    totalInvoiced: 0,
+                    totalCollected: 0,
+                });
+            }
+
+            const group = projectMap.get(groupingKey)!;
+            group.invoices.push(invoice);
+            group.totalInvoiced += Number(invoice.totalAmount || 0);
+
+            // Calculate collected amount from payments
+            const collected = invoice.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+            group.totalCollected += collected;
+        });
+
+        return Array.from(projectMap.values());
     };
 
     const getStatusBadge = (status: string) => {
@@ -90,7 +141,9 @@ export default function InvoicesPage() {
                     </Link>
                     <div>
                         <h1 className="text-3xl font-bold">发票管理</h1>
-                        <p className="text-muted-foreground mt-1">共 {filteredInvoices.length} 张发票</p>
+                        <p className="text-muted-foreground mt-1">
+                            有效发票 {activeInvoices.length} 张 · 已作废 {cancelledInvoices.length} 张
+                        </p>
                     </div>
                 </div>
                 <Link href="/finance/invoices/new">
@@ -116,46 +169,132 @@ export default function InvoicesPage() {
                 </CardContent>
             </Card>
 
-            {/* Invoice List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>发票列表</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {filteredInvoices.length > 0 ? (
-                        <div className="space-y-3">
-                            {filteredInvoices.map((invoice) => (
-                                <Link key={invoice.id} href={`/finance/invoices/${invoice.id}`}>
-                                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3">
-                                                <div className="font-bold text-lg">{invoice.invoiceNumber}</div>
-                                                {getStatusBadge(invoice.status)}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground mt-1">
-                                                {invoice.contract?.opportunity?.customer?.companyName || '未知客户'}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                                开票日期: {new Date(invoice.invoiceDate).toLocaleDateString('zh-CN')}
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-bold text-xl">¥{invoice.totalAmount?.toLocaleString()}</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {invoice.type === 'Service' ? '服务 6%' : '产品 13%'}
-                                            </div>
-                                        </div>
+            {/* Active Invoices - Grouped by Project */}
+            <div className="space-y-4">
+                {groupedInvoices.map((group) => (
+                    <Card key={group.projectId}>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <CardTitle className="text-lg">{group.projectName}</CardTitle>
+                                    <p className="text-sm text-muted-foreground mt-1">{group.customerName}</p>
+                                </div>
+                                <div className="text-right space-y-1">
+                                    <div className="text-sm text-muted-foreground">合同金额</div>
+                                    <div className="font-bold">¥{group.contractValue.toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            {/* Collection Summary */}
+                            <div className="grid grid-cols-3 gap-4 mt-4 p-3 bg-muted/50 rounded-lg">
+                                <div>
+                                    <div className="text-xs text-muted-foreground">开票总额</div>
+                                    <div className="text-lg font-semibold text-blue-600">
+                                        ¥{group.totalInvoiced.toLocaleString()}
                                     </div>
-                                </Link>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 text-muted-foreground">
-                            {searchTerm ? '未找到匹配的发票' : '暂无发票记录'}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-muted-foreground">已收款</div>
+                                    <div className="text-lg font-semibold text-green-600">
+                                        ¥{group.totalCollected.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-muted-foreground">待收款</div>
+                                    <div className="text-lg font-semibold text-orange-600">
+                                        ¥{(group.totalInvoiced - group.totalCollected).toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                {group.invoices.map((invoice) => (
+                                    <Link key={invoice.id} href={`/finance/invoices/${invoice.id}`}>
+                                        <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="font-medium">{invoice.invoiceNumber}</div>
+                                                    {getStatusBadge(invoice.status)}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    开票日期: {new Date(invoice.invoiceDate).toLocaleDateString('zh-CN')}
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-bold">¥{invoice.totalAmount?.toLocaleString()}</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {invoice.type === 'Service' ? '服务 6%' : '产品 13%'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+
+                {groupedInvoices.length === 0 && (
+                    <Card>
+                        <CardContent className="py-12">
+                            <div className="text-center text-muted-foreground">
+                                暂无有效发票记录
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            {/* Cancelled Invoices - Collapsed Section */}
+            {cancelledInvoices.length > 0 && (
+                <Collapsible open={showCancelled} onOpenChange={setShowCancelled}>
+                    <Card>
+                        <CollapsibleTrigger asChild>
+                            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        {showCancelled ? (
+                                            <ChevronDown className="h-5 w-5" />
+                                        ) : (
+                                            <ChevronRight className="h-5 w-5" />
+                                        )}
+                                        <CardTitle>已作废发票</CardTitle>
+                                        <Badge variant="outline">{cancelledInvoices.length} 张</Badge>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    {cancelledInvoices.map((invoice) => (
+                                        <Link key={invoice.id} href={`/finance/invoices/${invoice.id}`}>
+                                            <div className="flex items-center justify-between p-3 border border-dashed rounded-lg hover:bg-accent transition-colors cursor-pointer opacity-60">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="font-medium line-through">{invoice.invoiceNumber}</div>
+                                                        {getStatusBadge(invoice.status)}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground mt-1">
+                                                        {invoice.contract?.opportunity?.customer?.companyName || '未知客户'}
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-bold line-through">¥{invoice.totalAmount?.toLocaleString()}</div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {new Date(invoice.invoiceDate).toLocaleDateString('zh-CN')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
+                </Collapsible>
+            )}
         </div>
     );
 }

@@ -8,7 +8,6 @@ export declare class ProcurementsService {
         opportunity: {
             customer: {
                 id: string;
-                createdAt: Date;
                 companyName: string;
                 industry: string | null;
                 companySize: string | null;
@@ -18,14 +17,15 @@ export declare class ProcurementsService {
                 contactTitle: string | null;
                 contactPhone: string | null;
                 contactEmail: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.OpportunityStatus;
             createdAt: Date;
             opportunityNumber: string | null;
             customerId: string;
             title: string;
+            status: import("@prisma/client").$Enums.OpportunityStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             probability: number | null;
             source: string | null;
@@ -44,37 +44,38 @@ export declare class ProcurementsService {
             otherCost: import("@prisma/client/runtime/library").Decimal | null;
             grossProfit: import("@prisma/client/runtime/library").Decimal | null;
             profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+            businessType: import("@prisma/client").$Enums.BusinessType | null;
         };
         documents: {
             id: string;
             createdAt: Date;
+            procurementId: string;
             filename: string;
             filepath: string;
             mimetype: string;
             size: number;
             uploadedById: string | null;
-            procurementId: string;
             docType: string;
         }[];
         tasks: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
+            sortOrder: number;
+            procurementId: string;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
             documentId: string | null;
-            sortOrder: number;
-            procurementId: string;
         }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.ProcurementStatus;
         createdAt: Date;
-        opportunityId: string;
+        status: import("@prisma/client").$Enums.ProcurementStatus;
         type: import("@prisma/client").$Enums.ProcurementType;
         updatedAt: Date;
         procurementNumber: string;
+        opportunityId: string;
         commercialOwner: string | null;
         technicalOwner: string | null;
         customerBudget: import("@prisma/client/runtime/library").Decimal | null;
@@ -85,12 +86,15 @@ export declare class ProcurementsService {
         depositAmount: import("@prisma/client/runtime/library").Decimal | null;
         notes: string | null;
         resultNote: string | null;
+        wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+        tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+        agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+        printingFee: import("@prisma/client/runtime/library").Decimal | null;
     }) | null>;
     findAll(): Promise<({
         opportunity: {
             customer: {
                 id: string;
-                createdAt: Date;
                 companyName: string;
                 industry: string | null;
                 companySize: string | null;
@@ -100,14 +104,15 @@ export declare class ProcurementsService {
                 contactTitle: string | null;
                 contactPhone: string | null;
                 contactEmail: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.OpportunityStatus;
             createdAt: Date;
             opportunityNumber: string | null;
             customerId: string;
             title: string;
+            status: import("@prisma/client").$Enums.OpportunityStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             probability: number | null;
             source: string | null;
@@ -126,37 +131,38 @@ export declare class ProcurementsService {
             otherCost: import("@prisma/client/runtime/library").Decimal | null;
             grossProfit: import("@prisma/client/runtime/library").Decimal | null;
             profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+            businessType: import("@prisma/client").$Enums.BusinessType | null;
         };
         documents: {
             id: string;
             createdAt: Date;
+            procurementId: string;
             filename: string;
             filepath: string;
             mimetype: string;
             size: number;
             uploadedById: string | null;
-            procurementId: string;
             docType: string;
         }[];
         tasks: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
+            sortOrder: number;
+            procurementId: string;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
             documentId: string | null;
-            sortOrder: number;
-            procurementId: string;
         }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.ProcurementStatus;
         createdAt: Date;
-        opportunityId: string;
+        status: import("@prisma/client").$Enums.ProcurementStatus;
         type: import("@prisma/client").$Enums.ProcurementType;
         updatedAt: Date;
         procurementNumber: string;
+        opportunityId: string;
         commercialOwner: string | null;
         technicalOwner: string | null;
         customerBudget: import("@prisma/client/runtime/library").Decimal | null;
@@ -167,12 +173,15 @@ export declare class ProcurementsService {
         depositAmount: import("@prisma/client/runtime/library").Decimal | null;
         notes: string | null;
         resultNote: string | null;
+        wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+        tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+        agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+        printingFee: import("@prisma/client/runtime/library").Decimal | null;
     })[]>;
     findByOpportunity(opportunityId: string): Promise<({
         opportunity: {
             customer: {
                 id: string;
-                createdAt: Date;
                 companyName: string;
                 industry: string | null;
                 companySize: string | null;
@@ -182,14 +191,15 @@ export declare class ProcurementsService {
                 contactTitle: string | null;
                 contactPhone: string | null;
                 contactEmail: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.OpportunityStatus;
             createdAt: Date;
             opportunityNumber: string | null;
             customerId: string;
             title: string;
+            status: import("@prisma/client").$Enums.OpportunityStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             probability: number | null;
             source: string | null;
@@ -208,37 +218,48 @@ export declare class ProcurementsService {
             otherCost: import("@prisma/client/runtime/library").Decimal | null;
             grossProfit: import("@prisma/client/runtime/library").Decimal | null;
             profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+            businessType: import("@prisma/client").$Enums.BusinessType | null;
         };
         documents: {
             id: string;
             createdAt: Date;
+            procurementId: string;
             filename: string;
             filepath: string;
             mimetype: string;
             size: number;
             uploadedById: string | null;
-            procurementId: string;
             docType: string;
         }[];
         tasks: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
+            sortOrder: number;
+            procurementId: string;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
             documentId: string | null;
+        }[];
+        lineItems: {
+            id: string;
+            createdAt: Date;
+            name: string;
             sortOrder: number;
+            type: string;
+            description: string | null;
             procurementId: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
         }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.ProcurementStatus;
         createdAt: Date;
-        opportunityId: string;
+        status: import("@prisma/client").$Enums.ProcurementStatus;
         type: import("@prisma/client").$Enums.ProcurementType;
         updatedAt: Date;
         procurementNumber: string;
+        opportunityId: string;
         commercialOwner: string | null;
         technicalOwner: string | null;
         customerBudget: import("@prisma/client/runtime/library").Decimal | null;
@@ -249,12 +270,15 @@ export declare class ProcurementsService {
         depositAmount: import("@prisma/client/runtime/library").Decimal | null;
         notes: string | null;
         resultNote: string | null;
+        wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+        tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+        agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+        printingFee: import("@prisma/client/runtime/library").Decimal | null;
     })[]>;
     findOne(id: string): Promise<({
         opportunity: {
             customer: {
                 id: string;
-                createdAt: Date;
                 companyName: string;
                 industry: string | null;
                 companySize: string | null;
@@ -264,14 +288,15 @@ export declare class ProcurementsService {
                 contactTitle: string | null;
                 contactPhone: string | null;
                 contactEmail: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.OpportunityStatus;
             createdAt: Date;
             opportunityNumber: string | null;
             customerId: string;
             title: string;
+            status: import("@prisma/client").$Enums.OpportunityStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             probability: number | null;
             source: string | null;
@@ -290,37 +315,48 @@ export declare class ProcurementsService {
             otherCost: import("@prisma/client/runtime/library").Decimal | null;
             grossProfit: import("@prisma/client/runtime/library").Decimal | null;
             profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+            businessType: import("@prisma/client").$Enums.BusinessType | null;
         };
         documents: {
             id: string;
             createdAt: Date;
+            procurementId: string;
             filename: string;
             filepath: string;
             mimetype: string;
             size: number;
             uploadedById: string | null;
-            procurementId: string;
             docType: string;
         }[];
         tasks: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
+            sortOrder: number;
+            procurementId: string;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
             documentId: string | null;
+        }[];
+        lineItems: {
+            id: string;
+            createdAt: Date;
+            name: string;
             sortOrder: number;
+            type: string;
+            description: string | null;
             procurementId: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
         }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.ProcurementStatus;
         createdAt: Date;
-        opportunityId: string;
+        status: import("@prisma/client").$Enums.ProcurementStatus;
         type: import("@prisma/client").$Enums.ProcurementType;
         updatedAt: Date;
         procurementNumber: string;
+        opportunityId: string;
         commercialOwner: string | null;
         technicalOwner: string | null;
         customerBudget: import("@prisma/client/runtime/library").Decimal | null;
@@ -331,12 +367,15 @@ export declare class ProcurementsService {
         depositAmount: import("@prisma/client/runtime/library").Decimal | null;
         notes: string | null;
         resultNote: string | null;
+        wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+        tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+        agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+        printingFee: import("@prisma/client/runtime/library").Decimal | null;
     }) | null>;
     update(id: string, updateProcurementDto: UpdateProcurementDto): Promise<{
         opportunity: {
             customer: {
                 id: string;
-                createdAt: Date;
                 companyName: string;
                 industry: string | null;
                 companySize: string | null;
@@ -346,14 +385,15 @@ export declare class ProcurementsService {
                 contactTitle: string | null;
                 contactPhone: string | null;
                 contactEmail: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.OpportunityStatus;
             createdAt: Date;
             opportunityNumber: string | null;
             customerId: string;
             title: string;
+            status: import("@prisma/client").$Enums.OpportunityStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             probability: number | null;
             source: string | null;
@@ -372,37 +412,48 @@ export declare class ProcurementsService {
             otherCost: import("@prisma/client/runtime/library").Decimal | null;
             grossProfit: import("@prisma/client/runtime/library").Decimal | null;
             profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+            businessType: import("@prisma/client").$Enums.BusinessType | null;
         };
         documents: {
             id: string;
             createdAt: Date;
+            procurementId: string;
             filename: string;
             filepath: string;
             mimetype: string;
             size: number;
             uploadedById: string | null;
-            procurementId: string;
             docType: string;
         }[];
         tasks: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
+            sortOrder: number;
+            procurementId: string;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
             documentId: string | null;
+        }[];
+        lineItems: {
+            id: string;
+            createdAt: Date;
+            name: string;
             sortOrder: number;
+            type: string;
+            description: string | null;
             procurementId: string;
+            amount: import("@prisma/client/runtime/library").Decimal;
         }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.ProcurementStatus;
         createdAt: Date;
-        opportunityId: string;
+        status: import("@prisma/client").$Enums.ProcurementStatus;
         type: import("@prisma/client").$Enums.ProcurementType;
         updatedAt: Date;
         procurementNumber: string;
+        opportunityId: string;
         commercialOwner: string | null;
         technicalOwner: string | null;
         customerBudget: import("@prisma/client/runtime/library").Decimal | null;
@@ -413,15 +464,19 @@ export declare class ProcurementsService {
         depositAmount: import("@prisma/client/runtime/library").Decimal | null;
         notes: string | null;
         resultNote: string | null;
+        wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+        tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+        agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+        printingFee: import("@prisma/client/runtime/library").Decimal | null;
     }>;
     remove(id: string): Promise<{
         id: string;
-        status: import("@prisma/client").$Enums.ProcurementStatus;
         createdAt: Date;
-        opportunityId: string;
+        status: import("@prisma/client").$Enums.ProcurementStatus;
         type: import("@prisma/client").$Enums.ProcurementType;
         updatedAt: Date;
         procurementNumber: string;
+        opportunityId: string;
         commercialOwner: string | null;
         technicalOwner: string | null;
         customerBudget: import("@prisma/client/runtime/library").Decimal | null;
@@ -432,12 +487,15 @@ export declare class ProcurementsService {
         depositAmount: import("@prisma/client/runtime/library").Decimal | null;
         notes: string | null;
         resultNote: string | null;
+        wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+        tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+        agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+        printingFee: import("@prisma/client/runtime/library").Decimal | null;
     }>;
     findActive(): Promise<({
         opportunity: {
             customer: {
                 id: string;
-                createdAt: Date;
                 companyName: string;
                 industry: string | null;
                 companySize: string | null;
@@ -447,14 +505,15 @@ export declare class ProcurementsService {
                 contactTitle: string | null;
                 contactPhone: string | null;
                 contactEmail: string | null;
+                createdAt: Date;
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.OpportunityStatus;
             createdAt: Date;
             opportunityNumber: string | null;
             customerId: string;
             title: string;
+            status: import("@prisma/client").$Enums.OpportunityStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             probability: number | null;
             source: string | null;
@@ -473,37 +532,38 @@ export declare class ProcurementsService {
             otherCost: import("@prisma/client/runtime/library").Decimal | null;
             grossProfit: import("@prisma/client/runtime/library").Decimal | null;
             profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+            businessType: import("@prisma/client").$Enums.BusinessType | null;
         };
         documents: {
             id: string;
             createdAt: Date;
+            procurementId: string;
             filename: string;
             filepath: string;
             mimetype: string;
             size: number;
             uploadedById: string | null;
-            procurementId: string;
             docType: string;
         }[];
         tasks: {
             id: string;
-            name: string;
             createdAt: Date;
+            name: string;
+            sortOrder: number;
+            procurementId: string;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
             documentId: string | null;
-            sortOrder: number;
-            procurementId: string;
         }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.ProcurementStatus;
         createdAt: Date;
-        opportunityId: string;
+        status: import("@prisma/client").$Enums.ProcurementStatus;
         type: import("@prisma/client").$Enums.ProcurementType;
         updatedAt: Date;
         procurementNumber: string;
+        opportunityId: string;
         commercialOwner: string | null;
         technicalOwner: string | null;
         customerBudget: import("@prisma/client/runtime/library").Decimal | null;
@@ -514,17 +574,21 @@ export declare class ProcurementsService {
         depositAmount: import("@prisma/client/runtime/library").Decimal | null;
         notes: string | null;
         resultNote: string | null;
+        wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+        tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+        agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+        printingFee: import("@prisma/client/runtime/library").Decimal | null;
     })[]>;
     updateTask(taskId: string, isCompleted: boolean, assignee?: string): Promise<{
         id: string;
-        name: string;
         createdAt: Date;
+        name: string;
+        sortOrder: number;
+        procurementId: string;
         category: string;
         isCompleted: boolean;
         assignee: string | null;
         documentId: string | null;
-        sortOrder: number;
-        procurementId: string;
     }>;
     addDocument(procurementId: string, doc: {
         docType: string;
@@ -535,23 +599,34 @@ export declare class ProcurementsService {
     }, user?: any): Promise<{
         id: string;
         createdAt: Date;
+        procurementId: string;
         filename: string;
         filepath: string;
         mimetype: string;
         size: number;
         uploadedById: string | null;
-        procurementId: string;
         docType: string;
     }>;
     getDocuments(procurementId: string): Promise<{
         id: string;
         createdAt: Date;
+        procurementId: string;
         filename: string;
         filepath: string;
         mimetype: string;
         size: number;
         uploadedById: string | null;
-        procurementId: string;
         docType: string;
     }[]>;
+    deleteDocument(documentId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        procurementId: string;
+        filename: string;
+        filepath: string;
+        mimetype: string;
+        size: number;
+        uploadedById: string | null;
+        docType: string;
+    } | null>;
 }

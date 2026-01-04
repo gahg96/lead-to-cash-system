@@ -6,7 +6,6 @@ export declare class CustomersService {
     constructor(prisma: PrismaService);
     create(createCustomerDto: CreateCustomerDto): Promise<{
         id: string;
-        createdAt: Date;
         companyName: string;
         industry: string | null;
         companySize: string | null;
@@ -16,10 +15,10 @@ export declare class CustomersService {
         contactTitle: string | null;
         contactPhone: string | null;
         contactEmail: string | null;
+        createdAt: Date;
     }>;
     findAll(): Promise<{
         id: string;
-        createdAt: Date;
         companyName: string;
         industry: string | null;
         companySize: string | null;
@@ -29,10 +28,10 @@ export declare class CustomersService {
         contactTitle: string | null;
         contactPhone: string | null;
         contactEmail: string | null;
+        createdAt: Date;
     }[]>;
     findOne(id: string): Promise<{
         id: string;
-        createdAt: Date;
         companyName: string;
         industry: string | null;
         companySize: string | null;
@@ -42,10 +41,10 @@ export declare class CustomersService {
         contactTitle: string | null;
         contactPhone: string | null;
         contactEmail: string | null;
+        createdAt: Date;
     } | null>;
     update(id: string, updateCustomerDto: UpdateCustomerDto): Promise<{
         id: string;
-        createdAt: Date;
         companyName: string;
         industry: string | null;
         companySize: string | null;
@@ -55,5 +54,11 @@ export declare class CustomersService {
         contactTitle: string | null;
         contactPhone: string | null;
         contactEmail: string | null;
+        createdAt: Date;
     }>;
+    getCityDistribution(): Promise<{
+        name: string;
+        value: number;
+        wonDealCount: number;
+    }[]>;
 }

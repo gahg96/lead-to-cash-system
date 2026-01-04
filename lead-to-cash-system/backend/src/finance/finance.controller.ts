@@ -22,10 +22,13 @@ import { InvoiceStatus } from '@prisma/client';
 @UseGuards(JwtAuthGuard)
 export class FinanceController {
     constructor(private readonly financeService: FinanceService) {
-        // Ensure upload directory exists
+        // Ensure upload directories exist
         const fs = require('fs');
         if (!fs.existsSync('./uploads/invoices')) {
             fs.mkdirSync('./uploads/invoices', { recursive: true });
+        }
+        if (!fs.existsSync('./uploads/payments')) {
+            fs.mkdirSync('./uploads/payments', { recursive: true });
         }
     }
 
@@ -87,6 +90,30 @@ export class FinanceController {
         @Body('status') status: InvoiceStatus,
     ) {
         return this.financeService.updateStatus(id, status);
+    }
+
+    /**
+     * Update invoice (remarks, etc.)
+     * PATCH /finance/invoices/:id
+     */
+    @Patch('invoices/:id')
+    updateInvoice(
+        @Param('id') id: string,
+        @Body() updateData: Partial<{ remarks: string; description: string }>,
+    ) {
+        return this.financeService.updateInvoice(id, updateData);
+    }
+
+    /**
+     * Void/Cancel invoice
+     * POST /finance/invoices/:id/void
+     */
+    @Post('invoices/:id/void')
+    voidInvoice(
+        @Param('id') id: string,
+        @Body() body: { reason?: string },
+    ) {
+        return this.financeService.voidInvoice(id, body.reason);
     }
 
     /**
@@ -167,6 +194,35 @@ export class FinanceController {
         const decodedFilename = Buffer.from(file.originalname, 'latin1').toString('utf8');
 
         return this.financeService.uploadReceipt(id, {
+            ...file,
+            filename: decodedFilename,
+        });
+    }
+
+    /**
+     * Upload payment receipt
+     * POST /finance/payments/:id/receipt
+     */
+    @Post('payments/:id/receipt')
+    @UseInterceptors(FileInterceptor('file', {
+        storage: diskStorage({
+            destination: './uploads/payments',
+            filename: (req, file, cb) => {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+                cb(null, uniqueSuffix + extname(file.originalname));
+            },
+        }),
+    }))
+    uploadPaymentReceipt(
+        @Param('id') id: string,
+        @UploadedFile() file: Express.Multer.File,
+    ) {
+        if (!file) throw new Error("File upload failed");
+
+        // Decode Chinese filename
+        const decodedFilename = Buffer.from(file.originalname, 'latin1').toString('utf8');
+
+        return this.financeService.uploadPaymentReceipt(id, {
             ...file,
             filename: decodedFilename,
         });

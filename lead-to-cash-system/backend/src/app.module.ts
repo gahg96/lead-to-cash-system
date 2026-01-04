@@ -15,9 +15,11 @@ import { AuditModule } from './audit/audit.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ProjectsModule } from './projects/projects.module';
 import { FinanceModule } from './finance/finance.module';
+import { VendorsModule } from './vendors/vendors.module';
+import { PaymentAccountsModule } from './payment-accounts/payment-accounts.module';
 
 @Module({
-  imports: [PrismaModule, CustomersModule, OpportunitiesModule, ContractsModule, MilestonesModule, ProcurementsModule, AuthModule, UsersModule, AuditModule, DashboardModule, ProjectsModule, FinanceModule],
+  imports: [PrismaModule, CustomersModule, OpportunitiesModule, ContractsModule, MilestonesModule, ProcurementsModule, AuthModule, UsersModule, AuditModule, DashboardModule, ProjectsModule, FinanceModule, VendorsModule, PaymentAccountsModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -29,18 +29,24 @@ export class OpportunitiesService {
 
         const opportunityNumber = `${prefix}${nextNum.toString().padStart(4, '0')}`;
 
+        const { vendorIds, ...rest } = createOpportunityDto;
+
         return this.prisma.opportunity.create({
             data: {
-                ...createOpportunityDto,
+                ...rest,
                 opportunityNumber,
-                expectedCloseDate: createOpportunityDto.expectedCloseDate ? new Date(createOpportunityDto.expectedCloseDate) : undefined,
+                expectedCloseDate: rest.expectedCloseDate ? new Date(rest.expectedCloseDate) : undefined,
+                vendors: vendorIds && vendorIds.length > 0 ? {
+                    connect: vendorIds.map(id => ({ id }))
+                } : undefined,
             },
         });
     }
 
-    async update(id: string, updateOpportunityDto: UpdateOpportunityDto) {
+    async update(id: string, updateOpportunityDto: any) {
         // Prepare data with proper date conversion
-        const data: any = { ...updateOpportunityDto };
+        const { vendorIds, ...rest } = updateOpportunityDto;
+        const data: any = { ...rest };
 
         // Convert expectedCloseDate string to Date if provided
         if (data.expectedCloseDate && typeof data.expectedCloseDate === 'string') {
@@ -49,9 +55,15 @@ export class OpportunitiesService {
 
         return this.prisma.opportunity.update({
             where: { id },
-            data,
+            data: {
+                ...data,
+                vendors: vendorIds ? {
+                    set: vendorIds.map((vid: string) => ({ id: vid }))
+                } : undefined,
+            },
             include: {
                 customer: true,
+                vendors: true,
             },
         });
     }
@@ -60,6 +72,7 @@ export class OpportunitiesService {
         return this.prisma.opportunity.findMany({
             include: {
                 customer: true,
+                procurements: true,
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -70,9 +83,11 @@ export class OpportunitiesService {
             where: { id },
             include: {
                 customer: true,
-                contracts: true,
+                vendors: true,
+                contracts: true, // Existing relation
                 followUps: {
                     orderBy: { createdAt: 'desc' },
+                    include: { user: true }
                 },
                 attachments: {
                     orderBy: { createdAt: 'desc' },
@@ -83,13 +98,21 @@ export class OpportunitiesService {
 
     // FollowUp methods
     async createFollowUp(opportunityId: string, dto: CreateFollowUpDto, user?: any) {
-        return this.prisma.followUp.create({
-            data: {
-                content: dto.content,
-                opportunityId,
-                createdById: user?.userId,
-            },
-        });
+        try {
+            console.log('Creating follow-up:', { opportunityId, dto, user });
+            const result = await this.prisma.followUp.create({
+                data: {
+                    opportunityId,
+                    content: dto.content,
+                    createdById: user?.userId || null,
+                },
+            });
+            console.log('Follow-up created successfully:', result.id);
+            return result;
+        } catch (error) {
+            console.error('Error creating follow-up:', error);
+            throw error;
+        }
     }
 
     async getFollowUps(opportunityId: string) {

@@ -32,4 +32,43 @@ export class CustomersService {
             data: updateCustomerDto,
         });
     }
+    async getCityDistribution() {
+        const result = await this.prisma.customer.groupBy({
+            by: ['city'],
+            _count: {
+                city: true,
+            },
+        });
+
+        // Find cities with WON opportunities and count them
+        const wonCitiesRaw = await this.prisma.opportunity.findMany({
+            where: {
+                status: 'Won',
+                customer: {
+                    city: { not: null }
+                }
+            },
+            select: {
+                customer: {
+                    select: { city: true }
+                }
+            }
+        });
+
+        // Count won deals per city
+        const wonCounts: Record<string, number> = {};
+        wonCitiesRaw.forEach(item => {
+            const city = item.customer?.city;
+            if (city) {
+                wonCounts[city] = (wonCounts[city] || 0) + 1;
+            }
+        });
+
+        // Format for ECharts: { name: 'City', value: Count, wonDealCount: number }
+        return result.map(item => ({
+            name: item.city || 'Unknown',
+            value: item._count.city,
+            wonDealCount: item.city ? (wonCounts[item.city] || 0) : 0
+        }));
+    }
 }

@@ -38,73 +38,108 @@ let FinanceService = class FinanceService {
         }
         return `${prefix}${sequence.toString().padStart(5, '0')}`;
     }
-    calculateTax(amount, type) {
+    calculateTaxBreakdown(totalAmount, type) {
         const taxRate = type === client_1.InvoiceType.Service ? 0.06 : 0.13;
-        return Math.round(amount * taxRate * 100) / 100;
+        const amountBeforeTax = totalAmount / (1 + taxRate);
+        const taxAmount = totalAmount - amountBeforeTax;
+        return {
+            amountBeforeTax: Math.round(amountBeforeTax * 100) / 100,
+            taxAmount: Math.round(taxAmount * 100) / 100,
+            taxRate,
+        };
     }
     async createInvoice(dto) {
-        const contract = await this.prisma.contract.findUnique({
-            where: { id: dto.contractId },
-        });
-        if (!contract) {
-            throw new common_1.NotFoundException('Contract not found');
-        }
-        if (dto.milestoneId) {
-            const milestone = await this.prisma.milestone.findUnique({
-                where: { id: dto.milestoneId },
+        try {
+            console.log("Creating invoice with DTO:", JSON.stringify(dto));
+            const contract = await this.prisma.contract.findUnique({
+                where: { id: dto.contractId },
             });
-            if (!milestone) {
-                throw new common_1.NotFoundException('Milestone not found');
+            if (!contract) {
+                throw new common_1.NotFoundException('Contract not found');
             }
-            if (milestone.invoiceDate) {
-                throw new common_1.BadRequestException('Milestone already has an invoice');
+            if (dto.milestoneId) {
+                const existingInvoice = await this.prisma.invoice.findUnique({
+                    where: { milestoneId: dto.milestoneId },
+                    include: { contract: true }
+                });
+                if (existingInvoice) {
+                    console.log(`Found existing invoice ${existingInvoice.invoiceNumber} for milestone ${dto.milestoneId}. Recovering...`);
+                    await this.prisma.milestone.update({
+                        where: { id: dto.milestoneId },
+                        data: {
+                            invoiceDate: existingInvoice.invoiceDate,
+                            status: client_1.MilestoneStatus.Invoiced,
+                        },
+                    });
+                    return existingInvoice;
+                }
             }
-        }
-        const invoiceNumber = await this.generateInvoiceNumber();
-        const taxRate = dto.type === client_1.InvoiceType.Service ? 0.06 : 0.13;
-        const taxAmount = this.calculateTax(dto.amount, dto.type);
-        const totalAmount = dto.amount + taxAmount;
-        const invoice = await this.prisma.invoice.create({
-            data: {
-                invoiceNumber,
-                contractId: dto.contractId,
-                projectId: dto.projectId,
-                milestoneId: dto.milestoneId,
-                invoiceDate: new Date(dto.invoiceDate),
-                dueDate: new Date(dto.dueDate),
-                amount: dto.amount,
-                taxRate,
-                taxAmount,
-                totalAmount,
-                type: dto.type,
-                status: client_1.InvoiceStatus.Draft,
-                description: dto.description,
-                remarks: dto.remarks,
-            },
-            include: {
-                contract: {
+            if (dto.milestoneId) {
+                const milestone = await this.prisma.milestone.findUnique({
+                    where: { id: dto.milestoneId },
+                });
+                if (!milestone) {
+                    throw new common_1.NotFoundException('Milestone not found');
+                }
+                if (milestone.invoiceDate) {
+                    throw new common_1.BadRequestException('Milestone already has an invoice');
+                }
+            }
+            const invoiceNumber = await this.generateInvoiceNumber();
+            const taxBreakdown = this.calculateTaxBreakdown(dto.amount, dto.type);
+            const totalAmount = dto.amount;
+            const amountBeforeTax = taxBreakdown.amountBeforeTax;
+            const taxAmount = taxBreakdown.taxAmount;
+            const taxRate = taxBreakdown.taxRate;
+            const result = await this.prisma.$transaction(async (tx) => {
+                const invoice = await tx.invoice.create({
+                    data: {
+                        invoiceNumber,
+                        contractId: dto.contractId,
+                        projectId: dto.projectId,
+                        milestoneId: dto.milestoneId,
+                        invoiceDate: new Date(dto.invoiceDate),
+                        dueDate: new Date(dto.dueDate),
+                        amount: amountBeforeTax,
+                        taxRate,
+                        taxAmount,
+                        totalAmount,
+                        type: dto.type,
+                        status: client_1.InvoiceStatus.Draft,
+                        description: dto.description,
+                        remarks: dto.remarks,
+                    },
                     include: {
-                        opportunity: {
+                        contract: {
                             include: {
-                                customer: true,
+                                opportunity: {
+                                    include: {
+                                        customer: true,
+                                    },
+                                },
                             },
                         },
+                        project: true,
+                        milestone: true,
                     },
-                },
-                project: true,
-                milestone: true,
-            },
-        });
-        if (dto.milestoneId) {
-            await this.prisma.milestone.update({
-                where: { id: dto.milestoneId },
-                data: {
-                    invoiceDate: new Date(dto.invoiceDate),
-                    status: client_1.MilestoneStatus.Invoiced,
-                },
+                });
+                if (dto.milestoneId) {
+                    await tx.milestone.update({
+                        where: { id: dto.milestoneId },
+                        data: {
+                            invoiceDate: new Date(dto.invoiceDate),
+                            status: client_1.MilestoneStatus.Invoiced,
+                        },
+                    });
+                }
+                return invoice;
             });
+            return result;
         }
-        return invoice;
+        catch (error) {
+            console.error("Create Invoice Error:", error);
+            throw new common_1.BadRequestException(`Failed to create invoice: ${error.message}`);
+        }
     }
     async findOneMilestone(id) {
         return this.prisma.milestone.findUnique({
@@ -198,6 +233,44 @@ let FinanceService = class FinanceService {
             data: { status },
         });
     }
+    async updateInvoice(id, updateData) {
+        const invoice = await this.findOne(id);
+        return this.prisma.invoice.update({
+            where: { id },
+            data: updateData,
+        });
+    }
+    async voidInvoice(id, reason) {
+        const invoice = await this.findOne(id);
+        if (invoice.status === client_1.InvoiceStatus.Cancelled) {
+            throw new common_1.BadRequestException('Invoice is already cancelled');
+        }
+        if (invoice.status === client_1.InvoiceStatus.Paid) {
+            throw new common_1.BadRequestException('Cannot void a paid invoice. Please process refund first.');
+        }
+        const totalPaid = invoice.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+        if (totalPaid > 0) {
+            throw new common_1.BadRequestException('Cannot void invoice with payments. Please handle refunds first.');
+        }
+        const voidedInvoice = await this.prisma.invoice.update({
+            where: { id },
+            data: {
+                status: client_1.InvoiceStatus.Cancelled,
+                remarks: reason ? `${invoice.remarks || ''}\n[作废原因] ${reason}`.trim() : invoice.remarks,
+                milestoneId: null,
+            },
+        });
+        if (invoice.milestoneId) {
+            await this.prisma.milestone.update({
+                where: { id: invoice.milestoneId },
+                data: {
+                    invoiceDate: null,
+                    status: client_1.MilestoneStatus.Verified,
+                },
+            });
+        }
+        return voidedInvoice;
+    }
     async createPayment(dto) {
         const invoice = await this.findOne(dto.invoiceId);
         const year = new Date().getFullYear();
@@ -290,12 +363,108 @@ let FinanceService = class FinanceService {
             },
         });
         const pendingInvoiceAmountFromMilestones = readyToInvoiceMilestones.reduce((sum, m) => sum + Number(m.amount), 0);
+        const agingAnalysis = {
+            notDue: 0,
+            overdue30: 0,
+            overdue90: 0,
+            overdueMore: 0,
+        };
+        const now = new Date();
+        const oneDay = 24 * 60 * 60 * 1000;
+        for (const invoice of invoices) {
+            if (invoice.status === client_1.InvoiceStatus.Issued || invoice.status === client_1.InvoiceStatus.PartiallyPaid || invoice.status === client_1.InvoiceStatus.Overdue) {
+                const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
+                const remaining = invoice.totalAmount - totalPaid;
+                const dueDate = new Date(invoice.dueDate);
+                const diffDays = Math.floor((now.getTime() - dueDate.getTime()) / oneDay);
+                if (diffDays <= 0) {
+                    agingAnalysis.notDue += remaining;
+                }
+                else if (diffDays <= 30) {
+                    agingAnalysis.overdue30 += remaining;
+                }
+                else if (diffDays <= 90) {
+                    agingAnalysis.overdue90 += remaining;
+                }
+                else {
+                    agingAnalysis.overdueMore += remaining;
+                }
+            }
+        }
+        const projectHealth = [];
+        const projects = await this.prisma.project.findMany({
+            include: {
+                contract: true,
+                invoices: {
+                    include: { payments: true }
+                },
+                fundTransactions: true
+            }
+        });
+        for (const project of projects) {
+            const contractValue = Number(project.contract?.wonPrice || project.contract?.totalContractValue || 0);
+            let billedAmount = 0;
+            let collectedAmount = 0;
+            const contractInvoices = await this.prisma.invoice.findMany({
+                where: { contractId: project.contractId },
+                include: { payments: true }
+            });
+            for (const inv of contractInvoices) {
+                if (inv.status !== client_1.InvoiceStatus.Cancelled && inv.status !== client_1.InvoiceStatus.Draft) {
+                    billedAmount += inv.totalAmount;
+                    collectedAmount += inv.payments.reduce((sum, p) => sum + p.amount, 0);
+                }
+            }
+            const transactionTotal = project.fundTransactions?.filter(tx => tx.status !== 'ARCHIVED').reduce((sum, tx) => sum + Number(tx.totalAmount), 0) || 0;
+            const totalCost = Number(project.laborCost || 0) +
+                Number(project.outsourceCost || 0) +
+                Number(project.travelCost || 0) +
+                Number(project.emergencySupportCost || 0) +
+                Number(project.thirdPartyEquipmentCost || 0) +
+                Number(project.softwareCost || 0) +
+                Number(project.otherWeight || 0) +
+                transactionTotal;
+            const grossMargin = contractValue - totalCost;
+            const profitMargin = contractValue > 0 ? (grossMargin / contractValue) * 100 : 0;
+            const milestones = await this.prisma.milestone.findMany({
+                where: { contractId: project.contractId }
+            });
+            const blockerCount = milestones.filter(m => m.status === client_1.MilestoneStatus.Verified).length;
+            projectHealth.push({
+                id: project.id,
+                displayName: project.contract ? `${project.contract.contractNumber}` : 'Unnamed Project',
+                customerName: 'Loading...',
+                contractValue,
+                billedAmount,
+                collectedAmount,
+                totalCost,
+                grossMargin,
+                profitMargin,
+                blockerCount
+            });
+        }
+        const enrichedProjects = await Promise.all(projectHealth.map(async (p) => {
+            const contractId = projects.find(proj => proj.id === p.id)?.contractId;
+            if (!contractId)
+                return p;
+            const contract = await this.prisma.contract.findUnique({
+                where: { id: contractId },
+                include: { opportunity: { include: { customer: true } } }
+            });
+            return {
+                ...p,
+                displayName: contract?.opportunity?.title || p.displayName,
+                customerName: contract?.opportunity?.customer?.companyName || 'Unknown'
+            };
+        }));
         return {
             pendingInvoiceAmount: pendingInvoiceAmountFromMilestones,
             outstandingAmount,
             paidAmount,
             readyToInvoiceMilestones,
             recentInvoices: invoices.slice(0, 10),
+            agingAnalysis,
+            projectHealth: enrichedProjects
         };
     }
     async createMilestoneTemplate(data) {
@@ -342,6 +511,18 @@ let FinanceService = class FinanceService {
         if (!invoice)
             throw new common_1.NotFoundException('Invoice not found');
         return this.prisma.invoice.update({
+            where: { id },
+            data: {
+                filePath: file.path,
+                fileName: file.filename,
+            },
+        });
+    }
+    async uploadPaymentReceipt(id, file) {
+        const payment = await this.prisma.payment.findUnique({ where: { id } });
+        if (!payment)
+            throw new common_1.NotFoundException('Payment not found');
+        return this.prisma.payment.update({
             where: { id },
             data: {
                 filePath: file.path,

@@ -39,6 +39,39 @@ let CustomersService = class CustomersService {
             data: updateCustomerDto,
         });
     }
+    async getCityDistribution() {
+        const result = await this.prisma.customer.groupBy({
+            by: ['city'],
+            _count: {
+                city: true,
+            },
+        });
+        const wonCitiesRaw = await this.prisma.opportunity.findMany({
+            where: {
+                status: 'Won',
+                customer: {
+                    city: { not: null }
+                }
+            },
+            select: {
+                customer: {
+                    select: { city: true }
+                }
+            }
+        });
+        const wonCounts = {};
+        wonCitiesRaw.forEach(item => {
+            const city = item.customer?.city;
+            if (city) {
+                wonCounts[city] = (wonCounts[city] || 0) + 1;
+            }
+        });
+        return result.map(item => ({
+            name: item.city || 'Unknown',
+            value: item._count.city,
+            wonDealCount: item.city ? (wonCounts[item.city] || 0) : 0
+        }));
+    }
 };
 exports.CustomersService = CustomersService;
 exports.CustomersService = CustomersService = __decorate([

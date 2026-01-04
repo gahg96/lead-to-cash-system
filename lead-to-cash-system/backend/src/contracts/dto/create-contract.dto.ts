@@ -9,9 +9,9 @@ export class CreateContractDto {
     @IsString()
     contractNumber: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsNumber()
-    totalContractValue: number;
+    totalContractValue?: number;
 
     @IsOptional()
     @IsString()
@@ -43,7 +43,41 @@ export class CreateContractDto {
 
     @IsOptional()
     @IsString()
+    @IsOptional()
+    @IsString()
     paymentTermsDetails?: string;
+
+    @IsOptional()
+    @IsString()
+    paymentAccount?: string;
+
+    @IsOptional()
+    @IsString()
+    bankName?: string;
+
+    @IsOptional()
+    @IsString()
+    accountName?: string;
+
+    @IsOptional()
+    @IsString()
+    penalties?: string;
+
+    @IsOptional()
+    @IsString()
+    warranty?: string;
+
+    @IsOptional()
+    @IsString()
+    confidentiality?: string;
+
+    @IsOptional()
+    @IsString()
+    disputeResolution?: string;
+
+    @IsOptional()
+    @IsString()
+    specialTerms?: string;
 
     // Optional: Drafter ID typically comes from current user, but DTO might allow it
     @IsOptional()

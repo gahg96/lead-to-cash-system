@@ -23,7 +23,7 @@ export class DashboardService {
 
     // 3. Projected Revenue (Pipeline)
     const pipeline = await this.prisma.opportunity.aggregate({
-      where: { status: { in: ['New', 'Proposal', 'Negotiation', 'Won'] } },
+      where: { status: { in: ['New', 'Proposal', 'Negotiation', 'Bidding', 'Comparison', 'SingleSource', 'Sourcing', 'Won'] } },
       _sum: { estimatedValue: true },
       _count: true,
     });

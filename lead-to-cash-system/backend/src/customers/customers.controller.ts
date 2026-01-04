@@ -17,6 +17,11 @@ export class CustomersController {
         return this.customersService.findAll();
     }
 
+    @Get('stats/distribution')
+    getCityDistribution() {
+        return this.customersService.getCityDistribution();
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.customersService.findOne(id);

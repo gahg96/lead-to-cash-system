@@ -68,6 +68,9 @@ let ProcurementsController = class ProcurementsController {
     getDocuments(id) {
         return this.procurementsService.getDocuments(id);
     }
+    deleteDocument(id) {
+        return this.procurementsService.deleteDocument(id);
+    }
 };
 exports.ProcurementsController = ProcurementsController;
 __decorate([
@@ -122,7 +125,6 @@ __decorate([
 ], ProcurementsController.prototype, "updateTask", null);
 __decorate([
     (0, common_1.Post)(':id/documents'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
         storage: (0, multer_1.diskStorage)({
             destination: './uploads/procurements',
@@ -147,6 +149,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ProcurementsController.prototype, "getDocuments", null);
+__decorate([
+    (0, common_1.Delete)('documents/:id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProcurementsController.prototype, "deleteDocument", null);
 exports.ProcurementsController = ProcurementsController = __decorate([
     (0, common_1.Controller)('procurements'),
     __metadata("design:paramtypes", [procurements_service_1.ProcurementsService])

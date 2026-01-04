@@ -30,6 +30,9 @@ let FinanceController = class FinanceController {
         if (!fs.existsSync('./uploads/invoices')) {
             fs.mkdirSync('./uploads/invoices', { recursive: true });
         }
+        if (!fs.existsSync('./uploads/payments')) {
+            fs.mkdirSync('./uploads/payments', { recursive: true });
+        }
     }
     getDashboard() {
         return this.financeService.getDashboardData();
@@ -48,6 +51,12 @@ let FinanceController = class FinanceController {
     }
     updateInvoiceStatus(id, status) {
         return this.financeService.updateStatus(id, status);
+    }
+    updateInvoice(id, updateData) {
+        return this.financeService.updateInvoice(id, updateData);
+    }
+    voidInvoice(id, body) {
+        return this.financeService.voidInvoice(id, body.reason);
     }
     createPayment(createPaymentDto) {
         return this.financeService.createPayment(createPaymentDto);
@@ -72,6 +81,15 @@ let FinanceController = class FinanceController {
             throw new Error("File upload failed");
         const decodedFilename = Buffer.from(file.originalname, 'latin1').toString('utf8');
         return this.financeService.uploadReceipt(id, {
+            ...file,
+            filename: decodedFilename,
+        });
+    }
+    uploadPaymentReceipt(id, file) {
+        if (!file)
+            throw new Error("File upload failed");
+        const decodedFilename = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        return this.financeService.uploadPaymentReceipt(id, {
             ...file,
             filename: decodedFilename,
         });
@@ -120,6 +138,22 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], FinanceController.prototype, "updateInvoiceStatus", null);
+__decorate([
+    (0, common_1.Patch)('invoices/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "updateInvoice", null);
+__decorate([
+    (0, common_1.Post)('invoices/:id/void'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "voidInvoice", null);
 __decorate([
     (0, common_1.Post)('payments'),
     __param(0, (0, common_1.Body)()),
@@ -179,6 +213,23 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], FinanceController.prototype, "uploadReceipt", null);
+__decorate([
+    (0, common_1.Post)('payments/:id/receipt'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        storage: (0, multer_1.diskStorage)({
+            destination: './uploads/payments',
+            filename: (req, file, cb) => {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+                cb(null, uniqueSuffix + (0, path_1.extname)(file.originalname));
+            },
+        }),
+    })),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "uploadPaymentReceipt", null);
 exports.FinanceController = FinanceController = __decorate([
     (0, common_1.Controller)('finance'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

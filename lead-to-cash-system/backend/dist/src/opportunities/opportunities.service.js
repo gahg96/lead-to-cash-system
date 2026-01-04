@@ -32,24 +32,35 @@ let OpportunitiesService = class OpportunitiesService {
             nextNum = lastNum + 1;
         }
         const opportunityNumber = `${prefix}${nextNum.toString().padStart(4, '0')}`;
+        const { vendorIds, ...rest } = createOpportunityDto;
         return this.prisma.opportunity.create({
             data: {
-                ...createOpportunityDto,
+                ...rest,
                 opportunityNumber,
-                expectedCloseDate: createOpportunityDto.expectedCloseDate ? new Date(createOpportunityDto.expectedCloseDate) : undefined,
+                expectedCloseDate: rest.expectedCloseDate ? new Date(rest.expectedCloseDate) : undefined,
+                vendors: vendorIds && vendorIds.length > 0 ? {
+                    connect: vendorIds.map(id => ({ id }))
+                } : undefined,
             },
         });
     }
     async update(id, updateOpportunityDto) {
-        const data = { ...updateOpportunityDto };
+        const { vendorIds, ...rest } = updateOpportunityDto;
+        const data = { ...rest };
         if (data.expectedCloseDate && typeof data.expectedCloseDate === 'string') {
             data.expectedCloseDate = new Date(data.expectedCloseDate);
         }
         return this.prisma.opportunity.update({
             where: { id },
-            data,
+            data: {
+                ...data,
+                vendors: vendorIds ? {
+                    set: vendorIds.map((vid) => ({ id: vid }))
+                } : undefined,
+            },
             include: {
                 customer: true,
+                vendors: true,
             },
         });
     }
@@ -57,6 +68,7 @@ let OpportunitiesService = class OpportunitiesService {
         return this.prisma.opportunity.findMany({
             include: {
                 customer: true,
+                procurements: true,
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -66,9 +78,11 @@ let OpportunitiesService = class OpportunitiesService {
             where: { id },
             include: {
                 customer: true,
+                vendors: true,
                 contracts: true,
                 followUps: {
                     orderBy: { createdAt: 'desc' },
+                    include: { user: true }
                 },
                 attachments: {
                     orderBy: { createdAt: 'desc' },
@@ -77,13 +91,22 @@ let OpportunitiesService = class OpportunitiesService {
         });
     }
     async createFollowUp(opportunityId, dto, user) {
-        return this.prisma.followUp.create({
-            data: {
-                content: dto.content,
-                opportunityId,
-                createdById: user?.userId,
-            },
-        });
+        try {
+            console.log('Creating follow-up:', { opportunityId, dto, user });
+            const result = await this.prisma.followUp.create({
+                data: {
+                    opportunityId,
+                    content: dto.content,
+                    createdById: user?.userId || null,
+                },
+            });
+            console.log('Follow-up created successfully:', result.id);
+            return result;
+        }
+        catch (error) {
+            console.error('Error creating follow-up:', error);
+            throw error;
+        }
     }
     async getFollowUps(opportunityId) {
         return this.prisma.followUp.findMany({

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Building2, Users, Briefcase, FileText, Upload, X, FileIcon, DollarSign, Save, Plus, Pencil, Eye, Clock, Calendar, Target, Paperclip, RefreshCw } from "lucide-react";
+import { ArrowLeft, Edit, Save, Plus, Upload, Paperclip, FileText, CheckCircle, Clock, MoreHorizontal, Target, Receipt, Briefcase, File as FileIcon, Trash, Pencil, X, Building2, Users, DollarSign, Eye, Calendar, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,11 +51,19 @@ interface Opportunity {
         contactPhone: string;
         contactEmail: string;
     };
+    vendors?: Array<{
+        id: string;
+        name: string;
+        type: string;
+    }>;
     followUps: Array<{
         id: string;
         content: string;
         createdBy: string;
         createdAt: string;
+        user?: {
+            displayName: string;
+        };
     }>;
     attachments: Array<{
         id: string;
@@ -93,6 +101,17 @@ interface Procurement {
     ourQuote: number | null;
     submissionDeadline: string | null;
     notificationDate: string | null;
+    wonPrice?: number;
+    tenderFee?: number;
+    agencyFee?: number;
+    bondAmount?: number;
+    printingFee?: number;
+    lineItems?: Array<{
+        name: string;
+        type: string;
+        amount: number;
+        description?: string;
+    }>;
     bidLocation: string | null;
     depositAmount: number | null;
     notes: string | null;
@@ -134,6 +153,7 @@ export default function OpportunityDetailPage() {
         otherCost: 0,
         grossProfit: 0,
         profitMargin: 0,
+        vendorIds: [] as string[],
     });
 
     // Follow-up state
@@ -145,6 +165,8 @@ export default function OpportunityDetailPage() {
     const [procurements, setProcurements] = useState<Procurement[]>([]);
     const [showNewProcurement, setShowNewProcurement] = useState(false);
     const [newProcType, setNewProcType] = useState("");
+    const [users, setUsers] = useState<any[]>([]);
+    const [allVendors, setAllVendors] = useState<any[]>([]);
 
     const opportunityId = params.id as string;
 
@@ -152,8 +174,19 @@ export default function OpportunityDetailPage() {
         if (opportunityId) {
             fetchOpportunity();
             fetchProcurements();
+            fetchUsers();
+            api.get("/vendors").then(setAllVendors).catch(console.error);
         }
     }, [opportunityId]);
+
+    const fetchUsers = async () => {
+        try {
+            const data = await api.get("/users");
+            setUsers(data);
+        } catch (error) {
+            console.error("Failed to fetch users", error);
+        }
+    };
 
     const fetchProcurements = async () => {
         try {
@@ -243,6 +276,7 @@ export default function OpportunityDetailPage() {
                 otherCost: data.otherCost || 0,
                 grossProfit: data.grossProfit || 0,
                 profitMargin: data.profitMargin || 0,
+                vendorIds: data.vendors?.map((v: any) => v.id) || [],
             });
         } catch (error) {
             console.error("Failed to fetch opportunity", error);
@@ -275,6 +309,7 @@ export default function OpportunityDetailPage() {
                 otherCost: Number(form.otherCost) || undefined,
                 grossProfit: Number(form.grossProfit) || undefined,
                 profitMargin: Number(form.profitMargin) || undefined,
+                vendorIds: form.vendorIds,
             });
             setIsEditing(false);
             fetchOpportunity();
@@ -308,6 +343,7 @@ export default function OpportunityDetailPage() {
                 otherCost: opportunity.otherCost || 0,
                 grossProfit: opportunity.grossProfit || 0,
                 profitMargin: opportunity.profitMargin || 0,
+                vendorIds: opportunity.vendors?.map(v => v.id) || [],
             });
         }
         setIsEditing(false);
@@ -357,6 +393,25 @@ export default function OpportunityDetailPage() {
             router.push(`/contracts/${res.id}`);
         } catch (error) {
             console.error("Failed to create contract", error);
+        }
+    };
+
+    const handleUpdateProcurement = async (id: string, data: any) => {
+        try {
+            await api.patch(`/procurements/${id}`, data);
+            fetchProcurements();
+        } catch (error) {
+            console.error("Failed to update procurement", error);
+        }
+    };
+
+    const handleDeleteDocument = async (docId: string) => {
+        if (!confirm('确定要删除这个附件吗？')) return;
+        try {
+            await api.delete(`/procurements/documents/${docId}`);
+            fetchProcurements();
+        } catch (error) {
+            console.error("Failed to delete document", error);
         }
     };
 
@@ -516,10 +571,10 @@ export default function OpportunityDetailPage() {
                                                     <SelectValue placeholder="Select size" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Small">Small (1-50)</SelectItem>
-                                                    <SelectItem value="Medium">Medium (51-200)</SelectItem>
-                                                    <SelectItem value="Large">Large (201-1000)</SelectItem>
-                                                    <SelectItem value="Enterprise">Enterprise (1000+)</SelectItem>
+                                                    <SelectItem value="Small">{t("options.companySize.Small")}</SelectItem>
+                                                    <SelectItem value="Medium">{t("options.companySize.Medium")}</SelectItem>
+                                                    <SelectItem value="Large">{t("options.companySize.Large")}</SelectItem>
+                                                    <SelectItem value="Enterprise">{t("options.companySize.Enterprise")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -565,6 +620,79 @@ export default function OpportunityDetailPage() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Associated Vendors Section */}
+                                <div className="mt-6 border-t pt-6 space-y-3">
+                                    <Label className="text-base font-medium">涉及厂商 / Associated Vendors</Label>
+
+                                    {isEditing ? (
+                                        <>
+                                            <div className="text-sm text-slate-500 mb-2">选择此商机涉及的合作伙伴或供应商</div>
+                                            {form.vendorIds && form.vendorIds.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mb-2">
+                                                    {form.vendorIds.map((id: string) => {
+                                                        // We need to find the vendor name. 
+                                                        // Since we don't have the full vendor list loaded in this component yet, 
+                                                        // we might only show IDs or we need to fetch all vendors.
+                                                        // For now, let's look it up in opportunity.vendors if it exists there, 
+                                                        // otherwise we really should have fetched all vendors like in the create page.
+                                                        // *Self-correction*: We need to fetch vendors to support editing properly.
+                                                        // Let's assume we'll add the fetch logic separately or rely on what we have.
+                                                        // Actually, let's rely on `vendors` state if I add it, or just show placeholders?
+                                                        // No, I must add the fetch logic.
+                                                        return (
+                                                            <div key={id} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm border border-blue-100">
+                                                                <span>
+                                                                    {allVendors.find((v: any) => v.id === id)?.name ||
+                                                                        opportunity.vendors?.find(v => v.id === id)?.name ||
+                                                                        "Loading..."}
+                                                                </span>
+                                                                <button type="button" onClick={() => setForm(prev => ({ ...prev, vendorIds: prev.vendorIds?.filter((pid: string) => pid !== id) }))} className="text-blue-400 hover:text-blue-600">
+                                                                    <X className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                            <Select
+                                                onValueChange={(val) => {
+                                                    const currentIds = form.vendorIds || [];
+                                                    if (!currentIds.includes(val)) {
+                                                        setForm({ ...form, vendorIds: [...currentIds, val] });
+                                                    }
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="添加关联厂商..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {allVendors.filter((v: any) => !(form.vendorIds || []).includes(v.id)).map((v: any) => (
+                                                        <SelectItem key={v.id} value={v.id}>
+                                                            {v.name} <span className="text-slate-400 text-xs ml-2">({v.type || '未分类'})</span>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            {opportunity.vendors && opportunity.vendors.length > 0 ? (
+                                                opportunity.vendors.map((vendor) => (
+                                                    <Link key={vendor.id} href={`/settings/vendors?id=${vendor.id}`}>
+                                                        <div className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-full text-sm transition-colors border border-slate-200">
+                                                            <Building2 className="h-3 w-3 text-slate-400" />
+                                                            <span className="font-medium">{vendor.name}</span>
+                                                            {vendor.type && <span className="text-xs text-slate-500 border-l pl-2 border-slate-300">{vendor.type}</span>}
+                                                        </div>
+                                                    </Link>
+                                                ))
+                                            ) : (
+                                                <span className="text-sm text-slate-400 italic">暂无关联厂商</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -591,15 +719,19 @@ export default function OpportunityDetailPage() {
                                         <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="New">新建</SelectItem>
-                                                <SelectItem value="Proposal">提案中</SelectItem>
-                                                <SelectItem value="Negotiation">谈判中</SelectItem>
-                                                <SelectItem value="Won">已赢单</SelectItem>
-                                                <SelectItem value="Lost">已丢单</SelectItem>
+                                                <SelectItem value="New">{t("options.status.New")}</SelectItem>
+                                                <SelectItem value="Proposal">{t("options.status.Proposal")}</SelectItem>
+                                                <SelectItem value="Negotiation">{t("options.status.Negotiation")}</SelectItem>
+                                                <SelectItem value="Bidding">{t("options.status.Bidding")}</SelectItem>
+                                                <SelectItem value="Comparison">{t("options.status.Comparison")}</SelectItem>
+                                                <SelectItem value="SingleSource">{t("options.status.SingleSource")}</SelectItem>
+                                                <SelectItem value="Sourcing">{t("options.status.Sourcing")}</SelectItem>
+                                                <SelectItem value="Won">{t("options.status.Won")}</SelectItem>
+                                                <SelectItem value="Lost">{t("options.status.Lost")}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.status}</div>
+                                        <div className="p-2 bg-slate-50 rounded border">{t(`options.status.${opportunity.status}`) || opportunity.status}</div>
                                     )}
                                 </div>
                                 <div>
@@ -644,7 +776,7 @@ export default function OpportunityDetailPage() {
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.source || '-'}</div>
+                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.source ? t(`options.source.${opportunity.source}`) || opportunity.source : '-'}</div>
                                     )}
                                 </div>
                             </CardContent>
@@ -673,7 +805,7 @@ export default function OpportunityDetailPage() {
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.salesStage || '-'}</div>
+                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.salesStage ? t(`options.salesStage.${opportunity.salesStage}`) || opportunity.salesStage : '-'}</div>
                                     )}
                                 </div>
                                 <div>
@@ -688,7 +820,7 @@ export default function OpportunityDetailPage() {
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.dealType || '-'}</div>
+                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.dealType ? t(`options.dealType.${opportunity.dealType}`) || opportunity.dealType : '-'}</div>
                                     )}
                                 </div>
                                 <div>
@@ -711,7 +843,7 @@ export default function OpportunityDetailPage() {
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.deliveryModel || '-'}</div>
+                                        <div className="p-2 bg-slate-50 rounded border">{opportunity.deliveryModel ? t(`options.deliveryModel.${opportunity.deliveryModel}`) || opportunity.deliveryModel : '-'}</div>
                                     )}
                                 </div>
                                 <div>
@@ -728,6 +860,58 @@ export default function OpportunityDetailPage() {
                                         <Input value={form.competitors} onChange={(e) => setForm({ ...form, competitors: e.target.value })} />
                                     ) : (
                                         <div className="p-2 bg-slate-50 rounded border">{opportunity.competitors || '-'}</div>
+                                    )}
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <Label>涉及厂商</Label>
+                                    {isEditing ? (
+                                        <div className="space-y-2">
+                                            {form.vendorIds.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mb-2">
+                                                    {form.vendorIds.map(id => {
+                                                        const v = allVendors.find(item => item.id === id);
+                                                        return v ? (
+                                                            <div key={id} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm border border-blue-100">
+                                                                <span>{v.name}</span>
+                                                                <button type="button" onClick={() => setForm(prev => ({ ...prev, vendorIds: prev.vendorIds.filter(pid => pid !== id) }))} className="text-blue-400 hover:text-blue-600">
+                                                                    <X className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            )}
+                                            <Select
+                                                onValueChange={(val) => {
+                                                    if (!form.vendorIds.includes(val)) {
+                                                        setForm(prev => ({ ...prev, vendorIds: [...prev.vendorIds, val] }));
+                                                    }
+                                                }}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="添加关联厂商..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {allVendors.filter(v => !form.vendorIds.includes(v.id)).map(v => (
+                                                        <SelectItem key={v.id} value={v.id}>
+                                                            {v.name} <span className="text-slate-400 text-xs ml-2">({v.type || '未分类'})</span>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    ) : (
+                                        <div className="p-2 bg-slate-50 rounded border flex flex-wrap gap-2">
+                                            {opportunity.vendors && opportunity.vendors.length > 0 ? (
+                                                opportunity.vendors.map(v => (
+                                                    <span key={v.id} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-white border border-slate-200 text-slate-700">
+                                                        {v.name}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                '-'
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                                 <div className="col-span-2">
@@ -903,7 +1087,7 @@ export default function OpportunityDetailPage() {
                                         {opportunity.followUps.map((followUp) => (
                                             <div key={followUp.id} className="border-l-2 border-blue-200 pl-4 py-2">
                                                 <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                                                    <span className="font-medium text-slate-700">{followUp.createdBy || 'Unknown'}</span>
+                                                    <span className="font-medium text-slate-700">{followUp.user?.displayName || followUp.createdBy || 'Unknown'}</span>
                                                     <span>•</span>
                                                     <span>{new Date(followUp.createdAt).toLocaleString()}</span>
                                                 </div>
@@ -942,11 +1126,11 @@ export default function OpportunityDetailPage() {
                                                 <SelectValue placeholder="请选择投标类型" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="DirectQuote">单一来源 - 直接报价</SelectItem>
-                                                <SelectItem value="Negotiation">商务谈判</SelectItem>
-                                                <SelectItem value="Comparison">比选</SelectItem>
-                                                <SelectItem value="Consultation">磋商</SelectItem>
-                                                <SelectItem value="PublicTender">公开招标</SelectItem>
+                                                <SelectItem value="DirectQuote">{t("options.procurement.type.DirectQuote")}</SelectItem>
+                                                <SelectItem value="Negotiation">{t("options.procurement.type.Negotiation")}</SelectItem>
+                                                <SelectItem value="Comparison">{t("options.procurement.type.Comparison")}</SelectItem>
+                                                <SelectItem value="Consultation">{t("options.procurement.type.Consultation")}</SelectItem>
+                                                <SelectItem value="PublicTender">{t("options.procurement.type.PublicTender")}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <div className="flex justify-end gap-2 mt-4">
@@ -977,7 +1161,7 @@ export default function OpportunityDetailPage() {
                                                     <div className="flex items-center gap-2 mb-4">
                                                         <Briefcase className="h-5 w-5 text-blue-600" />
                                                         <h3 className="font-semibold text-lg">{proc.procurementNumber}</h3>
-                                                        <span className="text-slate-500 text-sm">({proc.type})</span>
+                                                        <span className="text-slate-500 text-sm">({t(`options.procurement.type.${proc.type}`)})</span>
                                                     </div>
 
                                                     {/* Progress Bar */}
@@ -996,21 +1180,122 @@ export default function OpportunityDetailPage() {
 
                                                     {/* Info Grid */}
                                                     <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-                                                        <div>
-                                                            <span className="text-slate-500 block">截止日期</span>
-                                                            <span>{proc.submissionDeadline ? new Date(proc.submissionDeadline).toLocaleDateString() : '-'}</span>
+                                                        <div className="space-y-1">
+                                                            <span className="text-slate-500 block text-xs">截止日期</span>
+                                                            <Input
+                                                                type="date"
+                                                                className="h-8 bg-white"
+                                                                defaultValue={proc.submissionDeadline ? new Date(proc.submissionDeadline).toISOString().split('T')[0] : ''}
+                                                                onChange={(e) => handleUpdateProcurement(proc.id, { submissionDeadline: e.target.value ? new Date(e.target.value) : null })}
+                                                            />
                                                         </div>
-                                                        <div>
-                                                            <span className="text-slate-500 block">开标日期</span>
-                                                            <span>{proc.notificationDate ? new Date(proc.notificationDate).toLocaleDateString() : '-'}</span>
+                                                        <div className="space-y-1">
+                                                            <span className="text-slate-500 block text-xs">开标日期</span>
+                                                            <Input
+                                                                type="date"
+                                                                className="h-8 bg-white"
+                                                                defaultValue={proc.notificationDate ? new Date(proc.notificationDate).toISOString().split('T')[0] : ''}
+                                                                onChange={(e) => handleUpdateProcurement(proc.id, { notificationDate: e.target.value ? new Date(e.target.value) : null })}
+                                                            />
                                                         </div>
-                                                        <div>
-                                                            <span className="text-slate-500 block">商务负责人</span>
-                                                            <span>{proc.commercialOwner || '未指定'}</span>
+                                                        <div className="space-y-1">
+                                                            <span className="text-slate-500 block text-xs">商务负责人</span>
+                                                            <Select
+                                                                value={proc.commercialOwner || undefined}
+                                                                onValueChange={(val) => handleUpdateProcurement(proc.id, { commercialOwner: val })}
+                                                            >
+                                                                <SelectTrigger className="h-8 bg-white w-full">
+                                                                    <SelectValue placeholder="选择商务负责人" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {users.length === 0 ? (
+                                                                        <div className="p-2 text-xs text-slate-400 text-center">暂无用户数据</div>
+                                                                    ) : (
+                                                                        users.map((u) => (
+                                                                            <SelectItem key={u.id} value={u.displayName}>
+                                                                                {u.displayName} ({u.role})
+                                                                            </SelectItem>
+                                                                        ))
+                                                                    )}
+                                                                </SelectContent>
+                                                            </Select>
                                                         </div>
-                                                        <div>
-                                                            <span className="text-slate-500 block">技术负责人</span>
-                                                            <span>{proc.technicalOwner || '未指定'}</span>
+                                                        <div className="space-y-1">
+                                                            <span className="text-slate-500 block text-xs">技术负责人</span>
+                                                            <Select
+                                                                value={proc.technicalOwner || undefined}
+                                                                onValueChange={(val) => handleUpdateProcurement(proc.id, { technicalOwner: val })}
+                                                            >
+                                                                <SelectTrigger className="h-8 bg-white w-full">
+                                                                    <SelectValue placeholder="选择技术负责人" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {users.length === 0 ? (
+                                                                        <div className="p-2 text-xs text-slate-400 text-center">暂无用户数据</div>
+                                                                    ) : (
+                                                                        users.map((u) => (
+                                                                            <SelectItem key={u.id} value={u.displayName}>
+                                                                                {u.displayName} ({u.role})
+                                                                            </SelectItem>
+                                                                        ))
+                                                                    )}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Cost Information Section */}
+                                                    <div className="mb-6 p-4 bg-slate-50/50 rounded-lg border border-slate-100">
+                                                        <h4 className="text-sm font-medium text-slate-700 mb-3">{t("options.procurement.fees.total")}</h4>
+                                                        <div className="grid grid-cols-4 gap-4">
+                                                            <div className="space-y-1">
+                                                                <span className="text-slate-500 block text-xs">{t("options.procurement.fees.tenderFee")}</span>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-2 top-2 text-xs text-slate-400">¥</span>
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="h-8 pl-5 bg-white"
+                                                                        defaultValue={proc.tenderFee || 0}
+                                                                        onBlur={(e) => handleUpdateProcurement(proc.id, { tenderFee: Number(e.target.value) })}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <span className="text-slate-500 block text-xs">{t("options.procurement.fees.bondAmount")}</span>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-2 top-2 text-xs text-slate-400">¥</span>
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="h-8 pl-5 bg-white"
+                                                                        defaultValue={proc.bondAmount || 0}
+                                                                        onBlur={(e) => handleUpdateProcurement(proc.id, { bondAmount: Number(e.target.value) })}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <span className="text-slate-500 block text-xs">{t("options.procurement.fees.agencyFee")}</span>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-2 top-2 text-xs text-slate-400">¥</span>
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="h-8 pl-5 bg-white"
+                                                                        defaultValue={proc.agencyFee || 0}
+                                                                        onBlur={(e) => handleUpdateProcurement(proc.id, { agencyFee: Number(e.target.value) })}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <span className="text-slate-500 block text-xs">{t("options.procurement.fees.printingFee")}</span>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-2 top-2 text-xs text-slate-400">¥</span>
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="h-8 pl-5 bg-white"
+                                                                        defaultValue={proc.printingFee || 0}
+                                                                        onBlur={(e) => handleUpdateProcurement(proc.id, { printingFee: Number(e.target.value) })}
+                                                                    />
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
 
@@ -1047,15 +1332,18 @@ export default function OpportunityDetailPage() {
                                                                     <span>上传</span>
                                                                     <input
                                                                         type="file"
+                                                                        multiple
                                                                         className="hidden"
                                                                         onChange={async (e) => {
-                                                                            const file = e.target.files?.[0];
-                                                                            if (!file) return;
-                                                                            const formData = new FormData();
-                                                                            formData.append('file', file);
-                                                                            formData.append('docType', 'bidding');
+                                                                            if (!e.target.files?.length) return;
+                                                                            const files = Array.from(e.target.files);
                                                                             try {
-                                                                                await api.upload(`/procurements/${proc.id}/documents`, formData);
+                                                                                await Promise.all(files.map(async (file) => {
+                                                                                    const formData = new FormData();
+                                                                                    formData.append('file', file);
+                                                                                    formData.append('docType', 'bidding');
+                                                                                    return api.upload(`/procurements/${proc.id}/documents`, formData);
+                                                                                }));
                                                                                 fetchProcurements();
                                                                                 e.target.value = '';
                                                                             } catch (error) {
@@ -1065,6 +1353,7 @@ export default function OpportunityDetailPage() {
                                                                     />
                                                                 </label>
                                                             </div>
+
                                                             {proc.documents && proc.documents.length > 0 ? (
                                                                 <div className="space-y-2">
                                                                     {proc.documents.map((doc: any) => (
@@ -1073,9 +1362,18 @@ export default function OpportunityDetailPage() {
                                                                                 <FileIcon className="h-4 w-4 text-blue-500" />
                                                                                 <span className="text-sm">{doc.filename}</span>
                                                                             </div>
-                                                                            <span className="text-xs text-slate-400">
-                                                                                {(doc.size / 1024).toFixed(1)} KB
-                                                                            </span>
+                                                                            <div className="flex items-center gap-3">
+                                                                                <span className="text-xs text-slate-400">
+                                                                                    {(doc.size / 1024).toFixed(1)} KB
+                                                                                </span>
+                                                                                <button
+                                                                                    onClick={() => handleDeleteDocument(doc.id)}
+                                                                                    className="text-slate-400 hover:text-red-500 transition-colors"
+                                                                                    title="删除附件"
+                                                                                >
+                                                                                    <Trash className="h-4 w-4" />
+                                                                                </button>
+                                                                            </div>
                                                                         </div>
                                                                     ))}
                                                                 </div>
@@ -1113,7 +1411,7 @@ export default function OpportunityDetailPage() {
                                                             <Target className="h-4 w-4 text-blue-600" />
                                                             <h4 className="text-sm font-medium text-slate-900">投标结果登记</h4>
                                                         </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-lg">
+                                                        <div className="bg-slate-50 p-4 rounded-lg space-y-6">
                                                             <div className="space-y-4">
                                                                 <div>
                                                                     <Label className="text-xs text-slate-500 mb-1.5 block">中标状态</Label>
@@ -1122,21 +1420,173 @@ export default function OpportunityDetailPage() {
                                                                         onValueChange={async (val) => {
                                                                             await api.patch(`/procurements/${proc.id}`, { status: val });
                                                                             fetchProcurements();
+                                                                            if (val === 'Won') {
+                                                                                fetchOpportunity();
+                                                                            }
                                                                         }}
                                                                     >
                                                                         <SelectTrigger className="w-full bg-white h-9 text-sm">
                                                                             <SelectValue />
                                                                         </SelectTrigger>
                                                                         <SelectContent>
-                                                                            <SelectItem value="Draft">Draft (草稿)</SelectItem>
-                                                                            <SelectItem value="Preparing">Preparing (准备中)</SelectItem>
-                                                                            <SelectItem value="Submitted">Submitted (已提交)</SelectItem>
-                                                                            <SelectItem value="InProgress">InProgress (评审中)</SelectItem>
-                                                                            <SelectItem value="Won">Won (中标)</SelectItem>
-                                                                            <SelectItem value="Lost">Lost (未中标)</SelectItem>
+                                                                            <SelectItem value="Draft">{t("options.procurement.status.Draft")}</SelectItem>
+                                                                            <SelectItem value="Preparing">{t("options.procurement.status.Preparing")}</SelectItem>
+                                                                            <SelectItem value="Submitted">{t("options.procurement.status.Submitted")}</SelectItem>
+                                                                            <SelectItem value="InProgress">{t("options.procurement.status.InProgress")}</SelectItem>
+                                                                            <SelectItem value="Won">{t("options.procurement.status.Won")}</SelectItem>
+                                                                            <SelectItem value="Lost">{t("options.procurement.status.Lost")}</SelectItem>
                                                                         </SelectContent>
                                                                     </Select>
                                                                 </div>
+
+                                                                {proc.status === 'Won' && (
+                                                                    <div>
+                                                                        <Label className="text-xs text-slate-500 mb-1.5 block">实际中标金额 (自动计算)</Label>
+                                                                        <div className="relative">
+                                                                            <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                                                                            <Input
+                                                                                type="number"
+                                                                                className="pl-9 h-9 bg-slate-50 font-semibold text-slate-900"
+                                                                                value={proc.wonPrice || 0}
+                                                                                readOnly
+                                                                                title="总金额由分项报价自动汇总，无需手动填写"
+                                                                            />
+                                                                        </div>
+                                                                        {(proc.lineItems && proc.lineItems.length > 0) && (
+                                                                            <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                                                                                {(() => {
+                                                                                    const summary = (proc.lineItems || []).reduce((acc: any, item: any) => {
+                                                                                        const rate = (item.type === 'Product' || item.type === 'ThirdParty') ? 0.13 : (item.type === 'Service' ? 0.06 : 0);
+                                                                                        const amount = Number(item.amount) || 0;
+                                                                                        const exTax = amount / (1 + rate);
+                                                                                        return {
+                                                                                            exTaxTotal: acc.exTaxTotal + exTax,
+                                                                                            taxTotal: acc.taxTotal + (amount - exTax)
+                                                                                        };
+                                                                                    }, { exTaxTotal: 0, taxTotal: 0 });
+
+                                                                                    return (
+                                                                                        <>
+                                                                                            <span>不含税合计: <span className="font-mono font-medium">{summary.exTaxTotal.toFixed(2)}</span></span>
+                                                                                            <span>税额合计: <span className="font-mono font-medium">{summary.taxTotal.toFixed(2)}</span></span>
+                                                                                        </>
+                                                                                    );
+                                                                                })()}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                {proc.status === 'Won' && (
+                                                                    <div className="border-t pt-4 mt-2">
+                                                                        <div className="flex items-center justify-between mb-2">
+                                                                            <Label className="text-sm font-medium text-slate-700">分项报价</Label>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => {
+                                                                                    const newItems = [...(proc.lineItems || []), { name: opportunity.title, type: 'Product', amount: 0, description: '' }];
+                                                                                    handleUpdateProcurement(proc.id, { lineItems: newItems });
+                                                                                }}
+                                                                            >
+                                                                                <Plus className="h-3 w-3 mr-1" /> 添加分项
+                                                                            </Button>
+                                                                        </div>
+                                                                        <div className="space-y-4">
+                                                                            {(proc.lineItems || []).map((item: any, idx: number) => {
+                                                                                // Calculate tax details for display
+                                                                                const rate = (item.type === 'Product' || item.type === 'ThirdParty') ? 0.13 : (item.type === 'Service' ? 0.06 : 0);
+                                                                                const amount = Number(item.amount) || 0;
+                                                                                const exTax = amount / (1 + rate);
+                                                                                const tax = amount - exTax;
+
+                                                                                return (
+                                                                                    <div key={idx} className="flex flex-col gap-2 p-3 bg-white rounded border border-slate-100">
+                                                                                        <div className="flex gap-2 items-start">
+                                                                                            <Input
+                                                                                                placeholder="项目名称"
+                                                                                                className="h-8 bg-slate-50 flex-1"
+                                                                                                defaultValue={item.name}
+                                                                                                onBlur={(e) => {
+                                                                                                    const newItems = [...(proc.lineItems || [])];
+                                                                                                    newItems[idx] = { ...newItems[idx], name: e.target.value };
+                                                                                                    handleUpdateProcurement(proc.id, { lineItems: newItems });
+                                                                                                }}
+                                                                                            />
+                                                                                            <Select
+                                                                                                defaultValue={item.type}
+                                                                                                onValueChange={(val) => {
+                                                                                                    const newItems = [...(proc.lineItems || [])];
+                                                                                                    newItems[idx] = { ...newItems[idx], type: val };
+                                                                                                    // Recalculate total
+                                                                                                    const total = newItems.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0);
+                                                                                                    handleUpdateProcurement(proc.id, { lineItems: newItems, wonPrice: total });
+                                                                                                }}
+                                                                                            >
+                                                                                                <SelectTrigger className="h-8 w-[140px] bg-slate-50">
+                                                                                                    <SelectValue />
+                                                                                                </SelectTrigger>
+                                                                                                <SelectContent>
+                                                                                                    <SelectItem value="Product">产品 (13%)</SelectItem>
+                                                                                                    <SelectItem value="ThirdParty">第三方外购 (13%)</SelectItem>
+                                                                                                    <SelectItem value="Service">服务 (6%)</SelectItem>
+                                                                                                    <SelectItem value="Other">其他 (0%)</SelectItem>
+                                                                                                </SelectContent>
+                                                                                            </Select>
+                                                                                            <Input
+                                                                                                type="number"
+                                                                                                placeholder="含税金额"
+                                                                                                className="h-8 w-[120px] bg-slate-50 font-medium"
+                                                                                                defaultValue={item.amount}
+                                                                                                onBlur={(e) => {
+                                                                                                    const val = Number(e.target.value);
+                                                                                                    const newItems = [...(proc.lineItems || [])];
+                                                                                                    newItems[idx] = { ...newItems[idx], amount: val };
+                                                                                                    // Auto-sum total wonPrice
+                                                                                                    const total = newItems.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0);
+                                                                                                    handleUpdateProcurement(proc.id, { lineItems: newItems, wonPrice: total });
+                                                                                                }}
+                                                                                            />
+                                                                                            <Button
+                                                                                                variant="ghost"
+                                                                                                size="icon"
+                                                                                                className="h-8 w-8 text-slate-400 hover:text-red-500"
+                                                                                                onClick={() => {
+                                                                                                    const newItems = (proc.lineItems || []).filter((_: any, i: number) => i !== idx);
+                                                                                                    const total = newItems.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0);
+                                                                                                    handleUpdateProcurement(proc.id, { lineItems: newItems, wonPrice: total });
+                                                                                                }}
+                                                                                            >
+                                                                                                <Trash className="h-4 w-4" />
+                                                                                            </Button>
+                                                                                        </div>
+                                                                                        <div className="flex gap-2 items-center">
+                                                                                            <Input
+                                                                                                placeholder="备注描述 (可选)"
+                                                                                                className="h-7 text-xs bg-transparent border-0 border-b border-slate-200 rounded-none px-0 focus-visible:ring-0 focus-visible:border-blue-500 placeholder:text-slate-300"
+                                                                                                defaultValue={item.description || ''}
+                                                                                                onBlur={(e) => {
+                                                                                                    const newItems = [...(proc.lineItems || [])];
+                                                                                                    newItems[idx] = { ...newItems[idx], description: e.target.value };
+                                                                                                    handleUpdateProcurement(proc.id, { lineItems: newItems });
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="flex gap-4 text-xs text-slate-500 pl-1">
+                                                                                            <span>不含税: <span className="font-mono">{exTax.toFixed(2)}</span></span>
+                                                                                            <span>税额: <span className="font-mono">{tax.toFixed(2)}</span></span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                            {(!proc.lineItems || proc.lineItems.length === 0) && (
+                                                                                <div className="text-center py-2 text-xs text-slate-400 border border-dashed rounded bg-slate-50/50">
+                                                                                    暂无分项报价信息
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                                 <div>
                                                                     <Label className="text-xs text-slate-500 mb-1.5 block">结果通知书/凭证</Label>
                                                                     <div className="space-y-2">
@@ -1174,19 +1624,17 @@ export default function OpportunityDetailPage() {
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <div className="h-full">
-                                                                    <Label className="text-xs text-slate-500 mb-1.5 block">结果说明 / 复盘总结</Label>
-                                                                    <textarea
-                                                                        className="w-full h-[calc(100%-24px)] min-h-[120px] p-3 text-sm bg-white border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                                                        placeholder="请输入结果说明，如中标原因、流标分析等..."
-                                                                        defaultValue={proc.resultNote || ''}
-                                                                        onBlur={async (e) => {
-                                                                            if (e.target.value !== proc.resultNote) {
-                                                                                await api.patch(`/procurements/${proc.id}`, { resultNote: e.target.value });
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                </div>
+                                                                <Label className="text-xs text-slate-500 mb-1.5 block">结果说明 / 复盘总结</Label>
+                                                                <textarea
+                                                                    className="w-full h-32 p-3 text-sm bg-white border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                                                    placeholder="请输入结果说明，如中标原因、流标分析等..."
+                                                                    defaultValue={proc.resultNote || ''}
+                                                                    onBlur={async (e) => {
+                                                                        if (e.target.value !== proc.resultNote) {
+                                                                            await api.patch(`/procurements/${proc.id}`, { resultNote: e.target.value });
+                                                                        }
+                                                                    }}
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,9 @@ export default function InvoiceDetailPage() {
         transactionRef: '',
         remarks: '',
     });
+    const [paymentReceiptFile, setPaymentReceiptFile] = useState<File | null>(null);
+    const [showVoidDialog, setShowVoidDialog] = useState(false);
+    const [voidReason, setVoidReason] = useState('');
 
     useEffect(() => {
         if (params.id) {
@@ -53,9 +57,11 @@ export default function InvoiceDetailPage() {
         try {
             await api.patch(`/finance/invoices/${params.id}`, { remarks });
             setIsEditingRemarks(false);
+            toast.success("备注已保存");
             fetchInvoice();
         } catch (error) {
             console.error("Failed to save remarks", error);
+            toast.error("保存失败");
         }
     };
 
@@ -68,15 +74,13 @@ export default function InvoiceDetailPage() {
 
         setIsUploading(true);
         try {
-            await api.post(`/finance/invoices/${params.id}/receipt`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            await api.upload(`/finance/invoices/${params.id}/receipt`, formData);
+
             fetchInvoice();
+            toast.success("电子回单上传成功");
         } catch (error) {
             console.error("Failed to upload receipt", error);
-            alert("上传失败");
+            toast.error("上传失败");
         } finally {
             setIsUploading(false);
         }
@@ -85,11 +89,26 @@ export default function InvoiceDetailPage() {
     const handlePaymentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/finance/payments', {
+            const response = await api.post('/finance/payments', {
                 invoiceId: params.id,
                 ...paymentForm,
                 amount: parseFloat(paymentForm.amount),
             });
+
+            const payment = response.data || response;
+
+            // Upload receipt if file is selected
+            if (paymentReceiptFile && payment?.id) {
+                const formData = new FormData();
+                formData.append('file', paymentReceiptFile);
+                try {
+                    await api.upload(`/finance/payments/${payment.id}/receipt`, formData);
+                } catch (uploadError) {
+                    console.error('Failed to upload receipt:', uploadError);
+                    toast.error('收款记录已创建，但回单上传失败');
+                }
+            }
+
             setShowPaymentDialog(false);
             fetchInvoice(); // Refresh invoice data
             setPaymentForm({
@@ -100,9 +119,37 @@ export default function InvoiceDetailPage() {
                 transactionRef: '',
                 remarks: '',
             });
+            setPaymentReceiptFile(null);
+            toast.success("收款记录已添加");
         } catch (error) {
             console.error('Failed to record payment:', error);
-            alert('记录收款失败');
+            toast.error('记录收款失败');
+        }
+    };
+
+    const handleConfirmInvoice = async () => {
+        try {
+            await api.patch(`/finance/invoices/${params.id}/status`, { status: "Issued" });
+            toast.success("发票已确认开具");
+            fetchInvoice();
+        } catch (error) {
+            console.error("Failed to confirm invoice", error);
+            toast.error("操作失败");
+        }
+    };
+
+    const handleVoidInvoice = async () => {
+        try {
+            await api.post(`/finance/invoices/${params.id}/void`, {
+                reason: voidReason || undefined,
+            });
+            setShowVoidDialog(false);
+            setVoidReason('');
+            fetchInvoice();
+            toast.success('发票已作废');
+        } catch (error: any) {
+            console.error('Failed to void invoice:', error);
+            toast.error(error.response?.data?.message || '作废失败');
         }
     };
 
@@ -175,10 +222,31 @@ export default function InvoiceDetailPage() {
                         </p>
                     </div>
                 </div>
-                <Button variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    下载PDF
-                </Button>
+                <div className="flex gap-2">
+                    {invoice && invoice.status === 'Draft' && (
+                        <Button
+                            size="sm"
+                            onClick={handleConfirmInvoice}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            <FileText className="h-4 w-4 mr-2" />
+                            确认开票
+                        </Button>
+                    )}
+                    {invoice && invoice.status !== 'Paid' && invoice.status !== 'Cancelled' && (
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setShowVoidDialog(true)}
+                        >
+                            作废发票
+                        </Button>
+                    )}
+                    <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        下载PDF
+                    </Button>
+                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -412,6 +480,21 @@ export default function InvoiceDetailPage() {
                                                 onChange={(e) => setPaymentForm({ ...paymentForm, remarks: e.target.value })}
                                             />
                                         </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="receipt">电子回单</Label>
+                                            <Input
+                                                id="receipt"
+                                                type="file"
+                                                accept=".pdf,.jpg,.jpeg,.png"
+                                                onChange={(e) => setPaymentReceiptFile(e.target.files?.[0] || null)}
+                                                className="cursor-pointer"
+                                            />
+                                            {paymentReceiptFile && (
+                                                <p className="text-sm text-muted-foreground">
+                                                    已选择: {paymentReceiptFile.name}
+                                                </p>
+                                            )}
+                                        </div>
                                         <div className="flex justify-end gap-3">
                                             <Button type="button" variant="outline" onClick={() => setShowPaymentDialog(false)}>
                                                 取消
@@ -466,6 +549,51 @@ export default function InvoiceDetailPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Void Invoice Dialog */}
+            <Dialog open={showVoidDialog} onOpenChange={setShowVoidDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>作废发票</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p className="text-sm text-yellow-800">
+                                ⚠️ 作废发票后，关联的里程碑状态将恢复为"已验收"，您可以重新开具正确的发票。
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="voidReason">作废原因（可选）</Label>
+                            <Textarea
+                                id="voidReason"
+                                placeholder="请输入作废原因..."
+                                value={voidReason}
+                                onChange={(e) => setVoidReason(e.target.value)}
+                                rows={3}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setShowVoidDialog(false);
+                                    setVoidReason('');
+                                }}
+                            >
+                                取消
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={handleVoidInvoice}
+                            >
+                                确认作废
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

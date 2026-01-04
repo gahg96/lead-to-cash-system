@@ -12,6 +12,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import Link from "next/link";
 // import { NewLeadDialog } from "@/components/NewLeadDialog";
 import { api } from "@/lib/api";
+import { CustomerMap } from "@/components/dashboard/CustomerMap";
 
 interface Procurement {
   id: string;
@@ -175,6 +176,11 @@ export default function Home() {
         {/* Main Content Area */}
         {/* Main Content Area */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+
+          {/* Customer Map */}
+          <div className="col-span-4 lg:col-span-7">
+            <CustomerMap />
+          </div>
 
           {/* Project List */}
           <Card className="col-span-4">

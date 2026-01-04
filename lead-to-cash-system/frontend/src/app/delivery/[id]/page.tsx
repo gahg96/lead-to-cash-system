@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useI18n } from "@/lib/i18n/I18nContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ArrowLeft, Plus, Trash2, Save, FileText, AlertTriangle, Edit, Upload, Download, TrendingUp, DollarSign, X } from 'lucide-react';
+import { Separator } from "@/components/ui/separator";
 
 export default function ProjectDetailPage() {
     const { id } = useParams();
@@ -22,6 +24,12 @@ export default function ProjectDetailPage() {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<any[]>([]);
+
+    // Helper for profit margin
+    const calculateProfitMargin = (revenue: number, cost: number) => {
+        if (!revenue || revenue === 0) return 0;
+        return Number((((revenue - cost) / revenue) * 100).toFixed(1));
+    };
 
     // UI Logic
     const [isEditing, setIsEditing] = useState(false);
@@ -45,17 +53,21 @@ export default function ProjectDetailPage() {
 
     // Auto-sync emergency cost when complexity changes in edit mode
     useEffect(() => {
-        if (isEditing && project?.contract?.totalContractValue) {
-            const contractValue = Number(project.contract.totalContractValue);
+        // Use wonPrice if available, otherwise totalContractValue, to match the rest of the UI
+        const baseValue = Number(project?.contract?.wonPrice || project?.contract?.totalContractValue || 0);
+
+        if (isEditing && baseValue > 0) {
             let rate = 0.03;
             if (editData.complexity === 'Medium') rate = 0.05;
             if (editData.complexity === 'High') rate = 0.10;
-            const newCost = contractValue * rate;
-            if (editData.emergencySupportCost !== newCost) {
+            const newCost = baseValue * rate;
+
+            // Only update if difference is significant (floating point safety)
+            if (Math.abs(editData.emergencySupportCost - newCost) > 0.01) {
                 setEditData((prev: any) => ({ ...prev, emergencySupportCost: newCost }));
             }
         }
-    }, [editData.complexity, isEditing, project?.contract?.totalContractValue, editData.emergencySupportCost]);
+    }, [editData.complexity, isEditing, project?.contract?.totalContractValue, project?.contract?.wonPrice]);
 
     const fetchProject = async () => {
         try {
@@ -249,6 +261,67 @@ export default function ProjectDetailPage() {
         });
     };
 
+    // Quick Add Transaction State
+    const [newTransaction, setNewTransaction] = useState({
+        transactionDate: new Date().toISOString().split('T')[0],
+        type: 'ADVANCE',
+        partyName: '',
+        description: '',
+        amount: ''
+    });
+
+    const handleAddTransaction = async () => {
+        if (!newTransaction.amount || !newTransaction.type) {
+            alert('请填写金额和类型');
+            return;
+        }
+        try {
+            await api.post('/funds/transactions', {
+                projectId: id,
+                type: newTransaction.type,
+                totalAmount: parseFloat(newTransaction.amount),
+                partyName: newTransaction.partyName,
+                description: newTransaction.description,
+                transactionDate: newTransaction.transactionDate,
+                status: 'ACTIVE'
+            });
+            setNewTransaction({
+                transactionDate: new Date().toISOString().split('T')[0],
+                type: 'ADVANCE',
+                partyName: '',
+                description: '',
+                amount: ''
+            });
+            fetchProject();
+        } catch (error) {
+            console.error('Add transaction error:', error);
+            alert('添加失败');
+        }
+    };
+
+    const handleDeleteTransaction = async (txId: string) => {
+        if (!confirm('确定要删除这笔交易吗？')) return;
+
+        // Optimistic update: Remove from UI immediately
+        const prevTransactions = project.fundTransactions;
+        setProject((prev: any) => ({
+            ...prev,
+            fundTransactions: prev.fundTransactions.map((tx: any) =>
+                tx.id === txId ? { ...tx, status: 'ARCHIVED' } : tx
+            )
+        }));
+
+        try {
+            await api.post(`/funds/transactions/${txId}`, { status: 'ARCHIVED' });
+            fetchProject(); // Fetch to confirm and get latest data
+        } catch (error) {
+            console.error('Delete transaction error:', error);
+            // Revert on error
+            setProject(prev => ({ ...prev, fundTransactions: prevTransactions }));
+            alert('删除失败');
+        }
+    };
+
     const handleSaveRisk = async (riskId: string) => {
         try {
             await api.patch(`/projects/risks/${riskId}`, editingRiskData);
@@ -270,7 +343,7 @@ export default function ProjectDetailPage() {
     if (loading || !project) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
 
     // Financial calculations
-    const contractValue = Number(project.contract.totalContractValue);
+    const contractValue = Number(project.contract.wonPrice || project.contract.totalContractValue);
 
     // Use editData if editing to ensure reactive updates in UI
     const currentLaborCost = Number((isEditing ? editData.laborCost : project.laborCost) || 0);
@@ -288,9 +361,10 @@ export default function ProjectDetailPage() {
     if (currentComplexity === 'High') emergencySupportRate = 0.10;
 
     const calculatedEmergencySupport = contractValue * emergencySupportRate;
-    const currentEmergencySupport = isEditing ? calculatedEmergencySupport : Number(project.emergencySupportCost || 0);
+    const currentEmergencySupport = isEditing ? editData.emergencySupportCost : Number(project.emergencySupportCost || 0);
 
-    const totalCost = currentLaborCost + currentOutsourceCost + currentTravelCost + currentThirdPartyCost + currentSoftwareCost + currentOtherWeight + currentEmergencySupport;
+    const transactionTotal = project.fundTransactions?.filter((tx: any) => tx.status !== 'ARCHIVED').reduce((sum: number, tx: any) => sum + Number(tx.totalAmount), 0) || 0;
+    const totalCost = currentLaborCost + currentOutsourceCost + currentTravelCost + currentThirdPartyCost + currentSoftwareCost + currentOtherWeight + currentEmergencySupport + transactionTotal;
     const netProfit = contractValue - totalCost;
     const profitMargin = contractValue > 0 ? (netProfit / contractValue) * 100 : 0;
 
@@ -339,7 +413,7 @@ export default function ProjectDetailPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-6">
                     <TabsTrigger value="overview">{t("project.tabs.overview")}</TabsTrigger>
-                    <TabsTrigger value="profit">{t("project.tabs.profit")}</TabsTrigger>
+                    <TabsTrigger value="financial">{t("project.tabs.financial") || "财务运营"}</TabsTrigger>
                     <TabsTrigger value="resources">{t("project.tabs.resources")}</TabsTrigger>
                     <TabsTrigger value="communication">{t("project.tabs.communication")}</TabsTrigger>
                     <TabsTrigger value="risks">{t("project.tabs.risks")}</TabsTrigger>
@@ -431,181 +505,459 @@ export default function ProjectDetailPage() {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="profit">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        <Card className="md:col-span-1 border-l-4 border-l-blue-500">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <DollarSign className="h-5 w-5 text-blue-500" />
-                                    {t("project.fields.financialAnalysis")}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.laborCost")}</Label>
-                                        {isEditing ? (
-                                            <Input type="number" size={1} className="h-8 text-sm" value={editData.laborCost} onChange={e => setEditData({ ...editData, laborCost: e.target.value })} />
-                                        ) : (
-                                            <div className="font-bold">¥{currentLaborCost.toLocaleString()}</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.outsourceCost")}</Label>
-                                        {isEditing ? (
-                                            <Input type="number" size={1} className="h-8 text-sm" value={editData.outsourceCost} onChange={e => setEditData({ ...editData, outsourceCost: e.target.value })} />
-                                        ) : (
-                                            <div className="font-bold">¥{currentOutsourceCost.toLocaleString()}</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.travelCost")}</Label>
-                                        {isEditing ? (
-                                            <Input type="number" size={1} className="h-8 text-sm" value={editData.travelCost} onChange={e => setEditData({ ...editData, travelCost: e.target.value })} />
-                                        ) : (
-                                            <div className="font-bold">¥{currentTravelCost.toLocaleString()}</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.softwareCost")}</Label>
-                                        {isEditing ? (
-                                            <Input type="number" size={1} className="h-8 text-sm" value={editData.softwareCost} onChange={e => setEditData({ ...editData, softwareCost: e.target.value })} />
-                                        ) : (
-                                            <div className="font-bold">¥{currentSoftwareCost.toLocaleString()}</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.thirdPartyEquipmentCost")}</Label>
-                                        {isEditing ? (
-                                            <Input type="number" size={1} className="h-8 text-sm" value={editData.thirdPartyEquipmentCost} onChange={e => setEditData({ ...editData, thirdPartyEquipmentCost: e.target.value })} />
-                                        ) : (
-                                            <div className="font-bold">¥{currentThirdPartyCost.toLocaleString()}</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.otherWeight")}</Label>
-                                        {isEditing ? (
-                                            <Input type="number" size={1} className="h-8 text-sm" value={editData.otherWeight} onChange={e => setEditData({ ...editData, otherWeight: e.target.value })} />
-                                        ) : (
-                                            <div className="font-bold">¥{currentOtherWeight.toLocaleString()}</div>
-                                        )}
+                <TabsContent value="financial">
+                    <div className="space-y-6">
+                        {/* Financial Header & KPIs */}
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight mb-2">项目财务运营</h1>
+                                <p className="text-muted-foreground">统筹管理项目收入与支出明细。</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center space-x-2 border p-2 rounded-lg bg-white">
+                                    <Checkbox
+                                        id="invoicing"
+                                        checked={project.requiresInvoicing}
+                                        onCheckedChange={async (checked) => {
+                                            try {
+                                                const res = await api.patch(`/projects/${id}`, { requiresInvoicing: checked });
+                                                setProject(res);
+                                            } catch (e) { console.error(e); }
+                                        }}
+                                        disabled={!isEditing}
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <label
+                                            htmlFor="invoicing"
+                                            className="text-sm font-medium leading-none cursor-pointer"
+                                        >
+                                            需要开票
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">
+                                            {project.requiresInvoicing ? (
+                                                project.invoicingCompleted ?
+                                                    <span className="text-green-600 font-bold">已完成开票</span> :
+                                                    <span className="text-orange-600">待完成开票</span>
+                                            ) : "本项目无需开票"}
+                                        </p>
                                     </div>
                                 </div>
+                                {!isEditing && (
+                                    <Button onClick={() => setIsEditing(true)}>
+                                        <Edit className="h-4 w-4 mr-2" /> 编辑财务数据
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
 
-                                <div className="space-y-2 pt-2 border-t border-dashed">
-                                    <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.complexity")} & {t("project.fields.emergencySupportCost")}</Label>
-                                    <div className="flex gap-2">
-                                        <div className="flex-1">
+                        {/* Top KPI Cards */}
+                        <div className="grid gap-4 md:grid-cols-4">
+                            <Card className="bg-slate-900 text-white border-0">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-slate-400">{t('project.financialOps.cards.netProfit')}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-bold">¥{(contractValue - totalCost).toLocaleString()}</div>
+                                    <div className={`text-sm mt-1 font-medium ${calculateProfitMargin(contractValue, totalCost) >= 20 ? 'text-green-400' : 'text-orange-400'}`}>
+                                        {calculateProfitMargin(contractValue, totalCost)}% {t('project.financialOps.cards.margin')}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-slate-500">{t('project.financialOps.cards.totalIncome')}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-green-600">
+                                        ¥{project.fundTransactions?.reduce((sum: number, tx: any) => sum + (tx.collections?.reduce((cSum: number, c: any) => cSum + Number(c.amount), 0) || 0), 0).toLocaleString()}
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-1">
+                                        {t('project.financialOps.cards.totalIncomeDesc')} ¥{contractValue.toLocaleString()}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-slate-500">{t('project.financialOps.cards.totalExpense')}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-red-600">
+                                        ¥{totalCost.toLocaleString()}
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-1">
+                                        {t('project.financialOps.cards.totalExpenseDesc')}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-slate-500">{t('project.financialOps.cards.fundsAdvanced')}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-orange-600">
+                                        ¥{project.fundTransactions?.filter((tx: any) => tx.type === 'ADVANCE' && tx.status !== 'ARCHIVED').reduce((sum: number, tx: any) => sum + Number(tx.totalAmount), 0).toLocaleString()}
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-1">
+                                        {t('project.financialOps.cards.fundsAdvancedDesc')}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Unified Income vs Expenditure View */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                            {/* LEFT: INCOME (收入) */}
+                            <Card className="shadow-sm h-fit">
+                                <CardHeader className="bg-green-50 border-b border-green-100">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <CardTitle className="text-green-800">收入明细 (Income)</CardTitle>
+                                            <CardDescription className="text-green-600">来自客户的回款与合同金额</CardDescription>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-sm text-green-700 font-semibold">收款进度</div>
+                                            <div className="text-2xl font-bold text-green-800">
+                                                {Math.round((project.fundTransactions?.reduce((sum: number, tx: any) => sum + (tx.collections?.reduce((cSum: number, c: any) => cSum + Number(c.amount), 0) || 0), 0) / (contractValue || 1)) * 100)}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <div className="divide-y">
+                                        {/* 1. Contract Base */}
+                                        <div className="p-4 flex justify-between items-center bg-slate-50/50">
+                                            <div>
+                                                <div className="font-semibold text-slate-900">合同总金额</div>
+                                                <div className="text-xs text-slate-500">Contract Total Value</div>
+                                            </div>
+                                            <div className="font-bold text-slate-900">¥{contractValue.toLocaleString()}</div>
+                                        </div>
+
+                                        {/* 2. Collections List */}
+                                        {project.fundTransactions?.map((tx: any) => (
+                                            tx.collections?.map((c: any) => (
+                                                <div key={c.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
+                                                    <div>
+                                                        <div className="font-medium text-slate-900">
+                                                            {c.customerName || '客户回款'}
+                                                            <Badge variant="outline" className="ml-2 text-[10px]">{tx.type === 'ADVANCE' ? '垫资回款' : tx.type === 'PASS_THROUGH' ? '过单回款' : tx.type}</Badge>
+                                                        </div>
+                                                        <div className="text-xs text-slate-500">{new Date(c.receivedDate).toLocaleDateString()}</div>
+                                                    </div>
+                                                    <div className="text-green-600 font-bold">+ ¥{Number(c.amount).toLocaleString()}</div>
+                                                </div>
+                                            ))
+                                        ))}
+
+                                        {(!project.fundTransactions || project.fundTransactions.every((tx: any) => !tx.collections || tx.collections.length === 0)) && (
+                                            <div className="p-8 text-center text-slate-400 italic">
+                                                暂无回款记录
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* RIGHT: EXPENDITURE (支出) */}
+                            <Card className="shadow-sm h-fit">
+                                <CardHeader className="bg-red-50 border-b border-red-100">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <CardTitle className="text-red-800">
+                                                支出明细 (Expenditure)
+                                                <span className="ml-2 text-lg font-bold">
+                                                    ¥{(
+                                                        (currentLaborCost + currentEmergencySupport) +
+                                                        (currentOutsourceCost + currentThirdPartyCost + currentSoftwareCost) +
+                                                        (project.fundTransactions?.filter((tx: any) => tx.status !== 'ARCHIVED').reduce((sum: number, tx: any) => sum + Number(tx.totalAmount), 0) || 0) +
+                                                        (currentTravelCost || 0) +
+                                                        (currentOtherWeight || 0)
+                                                    ).toLocaleString()}
+                                                </span>
+                                            </CardTitle>
+                                            <CardDescription className="text-red-600">包括人力、采购、及所有交易支出</CardDescription>
+                                        </div>
+                                        {isEditing && (
+                                            <Button size="sm" variant="destructive" onClick={() => router.push(`/finance/funds/new?projectId=${id}`)}>
+                                                <Plus className="h-4 w-4 mr-1" /> 新增交易
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <div className="divide-y">
+
+                                        {/* Category A: Normal Labor (Project Fields) */}
+                                        <div className="p-4 hover:bg-slate-50 transition-colors">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <div className="font-semibold text-slate-800 flex items-center gap-2">
+                                                    {t('project.financialOps.groups.labor')}
+                                                    {isEditing && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">可编辑</Badge>}
+                                                </div>
+                                                <div className="font-bold text-red-600">¥{(currentLaborCost + currentEmergencySupport).toLocaleString()}</div>
+                                            </div>
                                             {isEditing ? (
-                                                <Select value={editData.complexity} onValueChange={(val) => setEditData({ ...editData, complexity: val })}>
-                                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Low">Low (3%)</SelectItem>
-                                                        <SelectItem value="Medium">Medium (5%)</SelectItem>
-                                                        <SelectItem value="High">High (10%)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                <div className="grid gap-2 mt-2 pl-4 border-l-2 border-red-100">
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <Label className="text-xs">{t('project.financialOps.fields.laborCost')}</Label>
+                                                        <Input type="number" className="h-8" value={editData.laborCost} onChange={e => setEditData({ ...editData, laborCost: e.target.value })} />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <Label className="text-xs">{t('project.financialOps.fields.projectComplexity')}</Label>
+                                                        <Select
+                                                            value={editData.complexity || 'Low'}
+                                                            onValueChange={(val) => setEditData({ ...editData, complexity: val })}
+                                                        >
+                                                            <SelectTrigger className="h-8">
+                                                                <SelectValue placeholder="Select complexity" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="Low">Low (3%)</SelectItem>
+                                                                <SelectItem value="Medium">Medium (5%)</SelectItem>
+                                                                <SelectItem value="High">High (10%)</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <div className="flex flex-col">
+                                                            <Label className="text-xs">{t('project.financialOps.fields.emergencySupport')}</Label>
+                                                            <span className="text-[10px] text-slate-400">{t('project.financialOps.fields.formula', { rate: emergencySupportRate * 100 })}</span>
+                                                        </div>
+                                                        <div className="text-sm text-slate-500">¥{calculatedEmergencySupport.toLocaleString()} ({t('project.financialOps.fields.autoCalc')})</div>
+                                                    </div>
+                                                </div>
                                             ) : (
-                                                <Badge variant="secondary">{project.complexity}</Badge>
+                                                <div className="text-xs text-slate-500 pl-4 border-l-2 border-slate-200">
+                                                    包含: 人力成本 ¥{currentLaborCost.toLocaleString()} + 支持费 ¥{currentEmergencySupport.toLocaleString()}
+                                                    <div className="text-[10px] text-slate-400 mt-1">
+                                                        * 紧急支持费 = 合同总额 × {emergencySupportRate * 100}% (基于{currentComplexity}复杂度)
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="flex-1 text-right">
-                                            <div className="text-sm font-bold">¥{currentEmergencySupport.toLocaleString()}</div>
-                                            <div className="text-[10px] text-slate-400">{(emergencySupportRate * 100).toFixed(0)}% of Value</div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div className="pt-4 border-t border-dashed">
-                                    <div className="flex justify-between items-center bg-red-50 p-2 rounded-lg text-red-700">
-                                        <span className="text-xs font-semibold">{t("project.fields.totalCost")}</span>
-                                        <span className="text-base font-black">¥{totalCost.toLocaleString()}</span>
-                                    </div>
-                                </div>
+                                        {/* Category B: Third-Party Purchase (Project Fields) */}
+                                        <div className="p-4 hover:bg-slate-50 transition-colors">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <div className="font-semibold text-slate-800 flex items-center gap-2">
+                                                    {t('project.financialOps.groups.purchase')}
+                                                    {isEditing && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">可编辑</Badge>}
+                                                </div>
+                                                <div className="font-bold text-red-600">¥{(currentOutsourceCost + currentThirdPartyCost + currentSoftwareCost).toLocaleString()}</div>
+                                            </div>
+                                            {isEditing ? (
+                                                <div className="grid gap-2 mt-2 pl-4 border-l-2 border-red-100">
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <Label className="text-xs">{t('project.financialOps.fields.outsource')}</Label>
+                                                        <Input type="number" className="h-8" value={editData.outsourceCost} onChange={e => setEditData({ ...editData, outsourceCost: e.target.value })} />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <Label className="text-xs">{t('project.financialOps.fields.equipment')}</Label>
+                                                        <Input type="number" className="h-8" value={editData.thirdPartyEquipmentCost} onChange={e => setEditData({ ...editData, thirdPartyEquipmentCost: e.target.value })} />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <Label className="text-xs">{t('project.financialOps.fields.software')}</Label>
+                                                        <Input type="number" className="h-8" value={editData.softwareCost} onChange={e => setEditData({ ...editData, softwareCost: e.target.value })} />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-slate-500 pl-4 border-l-2 border-slate-200">
+                                                    外包 ¥{currentOutsourceCost.toLocaleString()} | 设备 ¥{currentThirdPartyCost.toLocaleString()} | 软件 ¥{currentSoftwareCost.toLocaleString()}
+                                                </div>
+                                            )}
+                                        </div>
 
-                                <div className="space-y-1 pt-2">
-                                    <Label className="text-[10px] text-slate-500 uppercase tracking-wider">{t("project.fields.financialRemarks")}</Label>
-                                    {isEditing ? (
-                                        <Textarea rows={3} className="text-xs" value={editData.financialRemarks} onChange={e => setEditData({ ...editData, financialRemarks: e.target.value })} placeholder="Add dynamic notes here..." />
-                                    ) : (
-                                        <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 italic min-h-[60px]">
-                                            {project.financialRemarks || "No remarks added."}
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                        {/* Category C: Transaction Ledger (Unified) */}
+                                        <div className="p-4 bg-slate-50/50">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div className="font-semibold text-slate-800">{t('project.financialOps.groups.ledger')}</div>
+                                                <div className="text-xs text-slate-500">
+                                                    总计: <span className="font-bold text-red-600 text-sm ml-1">
+                                                        ¥{project.fundTransactions?.filter((tx: any) => tx.status !== 'ARCHIVED').reduce((sum: number, tx: any) => sum + Number(tx.totalAmount), 0).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                        <div className="md:col-span-2 grid grid-cols-1 gap-6">
-                            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative border-0">
-                                <div className="absolute top-0 right-0 p-8 opacity-10">
-                                    <TrendingUp className="h-32 w-32" />
-                                </div>
-                                <CardContent className="p-10 flex items-center justify-between relative z-10">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-slate-400 font-medium tracking-wide">
-                                            <TrendingUp className="h-5 w-5" />
-                                            <span>{t("project.fields.profitMargin")}</span>
-                                        </div>
-                                        <div className={`text-7xl font-black transition-colors duration-1000 ${profitMargin > 20 ? 'text-green-400' : 'text-yellow-400'}`}>
-                                            {profitMargin.toFixed(1)}%
-                                        </div>
-                                    </div>
-                                    <div className="text-right space-y-3">
-                                        <div className="flex items-center gap-2 text-slate-400 justify-end font-medium tracking-wide">
-                                            <DollarSign className="h-5 w-5" />
-                                            <span>{t("project.fields.netProfit")}</span>
-                                        </div>
-                                        <div className="text-5xl font-black text-white">
-                                            ¥{netProfit.toLocaleString()}
-                                        </div>
-                                        <div className="text-xs text-slate-400">Calculated from total contract value</div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                            {/* Ledger Table */}
+                                            <div className="border rounded-md bg-white overflow-hidden text-sm">
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-slate-100 border-b text-slate-500">
+                                                        <tr>
+                                                            <th className="p-2 font-medium w-24">{t('project.financialOps.ledger.table.date')}</th>
+                                                            <th className="p-2 font-medium w-24">{t('project.financialOps.ledger.table.type')}</th>
+                                                            <th className="p-2 font-medium w-32">{t('project.financialOps.ledger.table.party')}</th>
+                                                            <th className="p-2 font-medium">{t('project.financialOps.ledger.table.desc')}</th>
+                                                            <th className="p-2 font-medium text-right w-24">{t('project.financialOps.ledger.table.amount')}</th>
+                                                            {isEditing && <th className="p-2 font-medium w-16 text-center">{t('project.financialOps.ledger.table.action')}</th>}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y">
+                                                        {/* Quick Add Row */}
+                                                        {isEditing && (
+                                                            <tr className="bg-blue-50/30">
+                                                                <td className="p-2">
+                                                                    <Input
+                                                                        type="date"
+                                                                        className="h-7 text-xs px-1"
+                                                                        value={newTransaction.transactionDate}
+                                                                        onChange={e => setNewTransaction({ ...newTransaction, transactionDate: e.target.value })}
+                                                                    />
+                                                                </td>
+                                                                <td className="p-2">
+                                                                    <select
+                                                                        className="h-7 text-xs w-full border rounded px-1 bg-white"
+                                                                        value={newTransaction.type}
+                                                                        onChange={e => setNewTransaction({ ...newTransaction, type: e.target.value })}
+                                                                    >
+                                                                        <option value="ADVANCE">{t('project.financialOps.ledger.types.advance')}</option>
+                                                                        <option value="PASS_THROUGH">{t('project.financialOps.ledger.types.passthrough')}</option>
+                                                                        <option value="SIMPLE_PASS">{t('project.financialOps.ledger.types.simplePass')}</option>
+                                                                        <option value="BOOST">{t('project.financialOps.ledger.types.boost')}</option>
+                                                                        <option value="EXPENSE_ONLY">{t('project.financialOps.ledger.types.expenseOnly')}</option>
+                                                                    </select>
+                                                                </td>
+                                                                <td className="p-2">
+                                                                    <Input
+                                                                        placeholder="对方名称"
+                                                                        className="h-7 text-xs px-2"
+                                                                        value={newTransaction.partyName}
+                                                                        onChange={e => setNewTransaction({ ...newTransaction, partyName: e.target.value })}
+                                                                    />
+                                                                </td>
+                                                                <td className="p-2">
+                                                                    <Input
+                                                                        placeholder="备注说明"
+                                                                        className="h-7 text-xs px-2"
+                                                                        value={newTransaction.description}
+                                                                        onChange={e => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                                                                    />
+                                                                </td>
+                                                                <td className="p-2">
+                                                                    <Input
+                                                                        type="number"
+                                                                        placeholder="0.00"
+                                                                        className="h-7 text-xs px-2 text-right"
+                                                                        value={newTransaction.amount}
+                                                                        onChange={e => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                                                                    />
+                                                                </td>
+                                                                <td className="p-2 text-center">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        className="h-7 w-7 p-0 bg-green-600 hover:bg-green-700 text-white rounded-full"
+                                                                        onClick={handleAddTransaction}
+                                                                    >
+                                                                        <Plus className="h-4 w-4" />
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        )}
 
-                            <Card shadow-sm="true">
-                                <CardHeader>
-                                    <CardTitle className="text-sm text-slate-500">目标利润率设置</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-semibold text-slate-700">目标利润率 (%)</Label>
-                                        {isEditing ? (
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                step="0.1"
-                                                value={editData.targetProfitMargin}
-                                                onChange={e => setEditData({ ...editData, targetProfitMargin: e.target.value })}
-                                                className="text-lg font-bold"
-                                            />
-                                        ) : (
-                                            <div className="text-2xl font-bold text-blue-600">{project.targetProfitMargin}%</div>
-                                        )}
-                                        <p className="text-xs text-slate-400 italic">设置项目的目标利润率，用于与实际利润率对比</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                                        {/* Existing Transactions */}
+                                                        {project.fundTransactions?.filter((tx: any) => tx.status !== 'ARCHIVED').map((tx: any) => (
+                                                            <tr key={tx.id} className="hover:bg-slate-50 group">
+                                                                <td className="p-2 text-slate-600">
+                                                                    {tx.transactionDate ? new Date(tx.transactionDate).toLocaleDateString() : '-'}
+                                                                </td>
+                                                                <td className="p-2">
+                                                                    <Badge variant="outline" className="text-[10px] font-normal">
+                                                                        {tx.type === 'ADVANCE' ? t('project.financialOps.ledger.types.advance') :
+                                                                            tx.type === 'PASS_THROUGH' ? t('project.financialOps.ledger.types.passthrough') :
+                                                                                tx.type === 'SIMPLE_PASS' ? t('project.financialOps.ledger.types.simplePass') : tx.type}
+                                                                    </Badge>
+                                                                </td>
+                                                                <td className="p-2 text-slate-800 font-medium">
+                                                                    {tx.partyName || '-'}
+                                                                </td>
+                                                                <td className="p-2 text-slate-500 truncate max-w-[150px]" title={tx.description}>
+                                                                    {tx.description || '-'}
+                                                                </td>
+                                                                <td className="p-2 text-right font-bold text-slate-700">
+                                                                    ¥{Number(tx.totalAmount).toLocaleString()}
+                                                                </td>
+                                                                {isEditing && (
+                                                                    <td className="p-2 text-center">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="h-6 w-6 p-0 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100"
+                                                                            onClick={() => handleDeleteTransaction(tx.id)}
+                                                                        >
+                                                                            <Trash2 className="h-3 w-3" />
+                                                                        </Button>
+                                                                    </td>
+                                                                )}
+                                                            </tr>
+                                                        ))}
 
-                            <Card shadow-sm="true">
-                                <CardHeader><CardTitle className="text-sm text-slate-500">{t("project.fields.profitMargin")} vs Target</CardTitle></CardHeader>
-                                <CardContent className="h-56 flex items-end gap-12 px-12 pb-10">
-                                    <div className="flex-1 flex flex-col items-center gap-3">
-                                        <div className="w-full bg-slate-100 rounded-t-xl relative border border-slate-200" style={{ height: '140px' }}>
-                                            <div className="absolute bottom-0 w-full bg-slate-400 rounded-t-xl transition-all duration-700 shadow-inner" style={{ height: `${project.targetProfitMargin}%` }}></div>
-                                            <div className="absolute -top-6 w-full text-center text-xs font-bold text-slate-500">{project.targetProfitMargin}%</div>
+                                                        {(!project.fundTransactions || project.fundTransactions.filter((tx: any) => tx.status !== 'ARCHIVED').length === 0) && (
+                                                            <tr>
+                                                                <td colSpan={6} className="p-8 text-center text-slate-400 italic">
+                                                                    {t('project.financialOps.ledger.table.noData')}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Target</span>
-                                    </div>
-                                    <div className="flex-1 flex flex-col items-center gap-3">
-                                        <div className="w-full bg-slate-100 rounded-t-xl relative border border-slate-200" style={{ height: '140px' }}>
-                                            <div className={`absolute bottom-0 w-full rounded-t-xl transition-all duration-1000 shadow-lg ${profitMargin >= project.targetProfitMargin ? 'bg-green-500' : 'bg-orange-500'}`} style={{ height: `${Math.min(profitMargin, 100)}%` }}></div>
-                                            <div className={`absolute -top-6 w-full text-center text-xs font-black ${profitMargin >= project.targetProfitMargin ? 'text-green-600' : 'text-orange-600'}`}>{profitMargin.toFixed(1)}%</div>
+
+                                        {/* Category E: Other Expenses */}
+                                        <div className="p-4 hover:bg-slate-50 transition-colors">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <div className="font-semibold text-slate-800 flex items-center gap-2">
+                                                    {t('project.financialOps.groups.other')}
+                                                    {isEditing && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">可编辑</Badge>}
+                                                </div>
+                                                <div className="font-bold text-red-600">¥{(currentTravelCost + currentOtherWeight).toLocaleString()}</div>
+                                            </div>
+                                            {isEditing ? (
+                                                <div className="grid gap-2 mt-2 pl-4 border-l-2 border-red-100">
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <Label className="text-xs">{t('project.financialOps.fields.travel')}</Label>
+                                                        <Input type="number" className="h-8" value={editData.travelCost} onChange={e => setEditData({ ...editData, travelCost: e.target.value })} />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 items-center">
+                                                        <Label className="text-xs">{t('project.financialOps.fields.misc')}</Label>
+                                                        <Input type="number" className="h-8" value={editData.otherWeight} onChange={e => setEditData({ ...editData, otherWeight: e.target.value })} />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-slate-500 pl-4 border-l-2 border-slate-200">
+                                                    差旅 ¥{currentTravelCost.toLocaleString()} | 杂费 ¥{currentOtherWeight.toLocaleString()}
+                                                </div>
+                                            )}
                                         </div>
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Actual</span>
+
+                                        {/* Financial Remarks */}
+                                        <div className="p-4 bg-yellow-50/50 border-t border-yellow-100">
+                                            <div className="mb-2 font-semibold text-slate-800 flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-slate-500" />
+                                                {t('project.financialOps.groups.remarks')}
+                                                {isEditing && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">可编辑</Badge>}
+                                            </div>
+                                            {isEditing ? (
+                                                <Textarea
+                                                    placeholder={t('project.financialOps.fields.remarksPlaceholder')}
+                                                    className="min-h-[80px] bg-white"
+                                                    value={editData.financialRemarks}
+                                                    onChange={e => setEditData({ ...editData, financialRemarks: e.target.value })}
+                                                />
+                                            ) : (
+                                                <div className="text-sm text-slate-600 whitespace-pre-wrap pl-6">
+                                                    {project.financialRemarks || t('project.financialOps.fields.noRemarks')}
+                                                </div>
+                                            )}
+                                        </div>
+
                                     </div>
+
+                                    {isEditing && <div className="p-4 bg-slate-50 border-t flex justify-end">
+                                        <Button onClick={handleSaveProject} className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
+                                            <Save className="h-4 w-4 mr-2" /> 保存全部更改
+                                        </Button>
+                                    </div>}
                                 </CardContent>
                             </Card>
                         </div>
@@ -713,7 +1065,14 @@ export default function ProjectDetailPage() {
                                         <tbody>
                                             {project.invoices?.map((inv: any) => (
                                                 <tr key={inv.id} className="border-b last:border-0">
-                                                    <td className="p-3 font-medium text-blue-600">{inv.invoiceNumber}</td>
+                                                    <td className="p-3 font-medium">
+                                                        <Link
+                                                            href={`/finance/invoices/${inv.id}`}
+                                                            className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                                                        >
+                                                            {inv.invoiceNumber}
+                                                        </Link>
+                                                    </td>
                                                     <td className="p-3">¥{inv.totalAmount.toLocaleString()}</td>
                                                     <td className="p-3 text-slate-500">{new Date(inv.invoiceDate).toLocaleDateString()}</td>
                                                     <td className="p-3">
@@ -731,6 +1090,137 @@ export default function ProjectDetailPage() {
                             </CardContent>
                         </Card>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="funds">
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>{t("project.tabs.funds")}</CardTitle>
+                            <CardDescription>项目相关的资金交易和垫资记录</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Fund Usage Quota */}
+                            <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg border">
+                                <div>
+                                    <p className="text-xs text-slate-500 mb-1">合同金额</p>
+                                    <p className="text-lg font-semibold text-slate-900">
+                                        ¥{contractValue.toLocaleString()}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 mb-1">已使用资金</p>
+                                    <p className="text-lg font-semibold text-orange-600">
+                                        ¥{project.fundTransactions.reduce((sum: number, tx: any) => sum + (Number(tx.totalAmount) || 0), 0).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 mb-1">剩余额度</p>
+                                    <p className="text-lg font-semibold text-green-600">
+                                        ¥{(contractValue - project.fundTransactions.reduce((sum: number, tx: any) => sum + (Number(tx.totalAmount) || 0), 0)).toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <p className="text-sm text-slate-500">
+                                    查看和管理与此项目相关的所有资金交易，包括垫资、过单和费用处理。
+                                </p>
+                                <Button
+                                    onClick={() => router.push(`/finance/funds/new?projectId=${project.id}`)}
+                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    新建资金交易
+                                </Button>
+                            </div>
+
+                            {/* Fund Transactions Table */}
+                            <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left font-medium text-slate-500">交易类型</th>
+                                            <th className="px-4 py-3 text-left font-medium text-slate-500">描述</th>
+                                            <th className="px-4 py-3 text-left font-medium text-slate-500">总金额</th>
+                                            <th className="px-4 py-3 text-left font-medium text-slate-500">状态</th>
+                                            <th className="px-4 py-3 text-left font-medium text-slate-500">创建时间</th>
+                                            <th className="px-4 py-3 text-right font-medium text-slate-500">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {project.fundTransactions && project.fundTransactions.length > 0 ? (
+                                            project.fundTransactions.map((transaction: any) => (
+                                                <tr key={transaction.id} className="border-b last:border-0 hover:bg-slate-50/50">
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant="outline">{transaction.type}</Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-slate-600">{transaction.description || '-'}</td>
+                                                    <td className="px-4 py-3 font-semibold">¥{Number(transaction.totalAmount).toLocaleString()}</td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant={transaction.status === 'COMPLETED' ? 'default' : 'secondary'}>
+                                                            {transaction.status}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-slate-500">
+                                                        {new Date(transaction.createdAt).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => router.push(`/finance/funds/${transaction.id}`)}
+                                                        >
+                                                            查看详情
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <DollarSign className="h-12 w-12 text-slate-300" />
+                                                        <p>暂无资金交易记录</p>
+                                                        <p className="text-xs">点击上方按钮创建新的资金交易</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Summary Cards */}
+                            {project.fundTransactions && project.fundTransactions.length > 0 && (
+                                <div className="grid grid-cols-3 gap-4 pt-4">
+                                    <Card>
+                                        <CardContent className="pt-6">
+                                            <div className="text-sm text-slate-500 mb-1">总交易额</div>
+                                            <div className="text-2xl font-bold">
+                                                ¥{project.fundTransactions.reduce((sum: number, t: any) => sum + Number(t.totalAmount), 0).toLocaleString()}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardContent className="pt-6">
+                                            <div className="text-sm text-slate-500 mb-1">活跃交易</div>
+                                            <div className="text-2xl font-bold text-blue-600">
+                                                {project.fundTransactions.filter((t: any) => t.status === 'ACTIVE').length}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardContent className="pt-6">
+                                            <div className="text-sm text-slate-500 mb-1">已完成交易</div>
+                                            <div className="text-2xl font-bold text-green-600">
+                                                {project.fundTransactions.filter((t: any) => t.status === 'COMPLETED').length}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="resources">

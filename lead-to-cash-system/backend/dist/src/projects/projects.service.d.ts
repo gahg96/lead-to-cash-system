@@ -5,42 +5,59 @@ export declare class ProjectsService {
     create(contractId: string, data: any): Promise<{
         contract: {
             id: string;
-            status: import("@prisma/client").$Enums.ContractStatus;
             createdAt: Date;
-            contractNumber: string;
+            status: import("@prisma/client").$Enums.ContractStatus;
+            estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             opportunityId: string;
+            wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+            contractNumber: string;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
             endDate: Date | null;
+            customerContactName: string | null;
+            customerContactPhone: string | null;
+            customerContactEmail: string | null;
+            customerContactTitle: string | null;
+            vendorName: string | null;
+            vendorContactName: string | null;
+            vendorContactPhone: string | null;
             riskAssessment: string | null;
             scope: string | null;
             sla: string | null;
             liability: string | null;
             paymentTermsDetails: string | null;
+            paymentAccount: string | null;
+            bankName: string | null;
+            accountName: string | null;
+            penalties: string | null;
+            warranty: string | null;
+            confidentiality: string | null;
+            disputeResolution: string | null;
+            specialTerms: string | null;
             drafterId: string | null;
             approverId: string | null;
             isActive: boolean;
         };
         resources: {
             id: string;
+            projectId: string;
             startDate: Date | null;
             endDate: Date | null;
-            projectId: string;
             role: string;
             userId: string;
             allocationPct: number;
         }[];
     } & {
         id: string;
-        contractId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
-        startDate: Date | null;
-        endDate: Date | null;
+        status: import("@prisma/client").$Enums.ProjectStatus;
+        laborCost: import("@prisma/client/runtime/library").Decimal | null;
         description: string | null;
         updatedAt: Date;
-        laborCost: import("@prisma/client/runtime/library").Decimal | null;
+        contractId: string;
+        startDate: Date | null;
+        endDate: Date | null;
         budget: import("@prisma/client/runtime/library").Decimal | null;
         targetProfitMargin: import("@prisma/client/runtime/library").Decimal | null;
         outsourceCost: import("@prisma/client/runtime/library").Decimal | null;
@@ -52,13 +69,15 @@ export declare class ProjectsService {
         complexity: import("@prisma/client").$Enums.ProjectComplexity;
         financialRemarks: string | null;
         isDelayed: boolean;
+        requiresInvoicing: boolean;
+        invoicingCompleted: boolean;
+        invoicingCompletedAt: Date | null;
     }>;
     findAll(): Promise<({
         contract: {
             opportunity: {
                 customer: {
                     id: string;
-                    createdAt: Date;
                     companyName: string;
                     industry: string | null;
                     companySize: string | null;
@@ -68,14 +87,15 @@ export declare class ProjectsService {
                     contactTitle: string | null;
                     contactPhone: string | null;
                     contactEmail: string | null;
+                    createdAt: Date;
                 };
             } & {
                 id: string;
-                status: import("@prisma/client").$Enums.OpportunityStatus;
                 createdAt: Date;
                 opportunityNumber: string | null;
                 customerId: string;
                 title: string;
+                status: import("@prisma/client").$Enums.OpportunityStatus;
                 estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
                 probability: number | null;
                 source: string | null;
@@ -94,22 +114,40 @@ export declare class ProjectsService {
                 otherCost: import("@prisma/client/runtime/library").Decimal | null;
                 grossProfit: import("@prisma/client/runtime/library").Decimal | null;
                 profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+                businessType: import("@prisma/client").$Enums.BusinessType | null;
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.ContractStatus;
             createdAt: Date;
-            contractNumber: string;
+            status: import("@prisma/client").$Enums.ContractStatus;
+            estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             opportunityId: string;
+            wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+            contractNumber: string;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
             endDate: Date | null;
+            customerContactName: string | null;
+            customerContactPhone: string | null;
+            customerContactEmail: string | null;
+            customerContactTitle: string | null;
+            vendorName: string | null;
+            vendorContactName: string | null;
+            vendorContactPhone: string | null;
             riskAssessment: string | null;
             scope: string | null;
             sla: string | null;
             liability: string | null;
             paymentTermsDetails: string | null;
+            paymentAccount: string | null;
+            bankName: string | null;
+            accountName: string | null;
+            penalties: string | null;
+            warranty: string | null;
+            confidentiality: string | null;
+            disputeResolution: string | null;
+            specialTerms: string | null;
             drafterId: string | null;
             approverId: string | null;
             isActive: boolean;
@@ -126,23 +164,23 @@ export declare class ProjectsService {
             };
         } & {
             id: string;
+            projectId: string;
             startDate: Date | null;
             endDate: Date | null;
-            projectId: string;
             role: string;
             userId: string;
             allocationPct: number;
         })[];
     } & {
         id: string;
-        contractId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
-        startDate: Date | null;
-        endDate: Date | null;
+        status: import("@prisma/client").$Enums.ProjectStatus;
+        laborCost: import("@prisma/client/runtime/library").Decimal | null;
         description: string | null;
         updatedAt: Date;
-        laborCost: import("@prisma/client/runtime/library").Decimal | null;
+        contractId: string;
+        startDate: Date | null;
+        endDate: Date | null;
         budget: import("@prisma/client/runtime/library").Decimal | null;
         targetProfitMargin: import("@prisma/client/runtime/library").Decimal | null;
         outsourceCost: import("@prisma/client/runtime/library").Decimal | null;
@@ -154,13 +192,15 @@ export declare class ProjectsService {
         complexity: import("@prisma/client").$Enums.ProjectComplexity;
         financialRemarks: string | null;
         isDelayed: boolean;
+        requiresInvoicing: boolean;
+        invoicingCompleted: boolean;
+        invoicingCompletedAt: Date | null;
     })[]>;
     findOne(id: string): Promise<({
         contract: {
             opportunity: {
                 customer: {
                     id: string;
-                    createdAt: Date;
                     companyName: string;
                     industry: string | null;
                     companySize: string | null;
@@ -170,14 +210,15 @@ export declare class ProjectsService {
                     contactTitle: string | null;
                     contactPhone: string | null;
                     contactEmail: string | null;
+                    createdAt: Date;
                 };
             } & {
                 id: string;
-                status: import("@prisma/client").$Enums.OpportunityStatus;
                 createdAt: Date;
                 opportunityNumber: string | null;
                 customerId: string;
                 title: string;
+                status: import("@prisma/client").$Enums.OpportunityStatus;
                 estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
                 probability: number | null;
                 source: string | null;
@@ -196,61 +237,79 @@ export declare class ProjectsService {
                 otherCost: import("@prisma/client/runtime/library").Decimal | null;
                 grossProfit: import("@prisma/client/runtime/library").Decimal | null;
                 profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+                businessType: import("@prisma/client").$Enums.BusinessType | null;
             };
             milestones: {
                 id: string;
-                contractId: string;
+                createdAt: Date;
                 name: string;
-                amount: import("@prisma/client/runtime/library").Decimal;
                 status: import("@prisma/client").$Enums.MilestoneStatus;
+                amount: import("@prisma/client/runtime/library").Decimal;
+                contractId: string;
                 dueDate: Date | null;
                 acceptanceDate: Date | null;
                 acceptanceNote: string | null;
                 invoiceDate: Date | null;
                 paymentDate: Date | null;
-                createdAt: Date;
             }[];
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.ContractStatus;
             createdAt: Date;
-            contractNumber: string;
+            status: import("@prisma/client").$Enums.ContractStatus;
+            estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             opportunityId: string;
+            wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+            contractNumber: string;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
             endDate: Date | null;
+            customerContactName: string | null;
+            customerContactPhone: string | null;
+            customerContactEmail: string | null;
+            customerContactTitle: string | null;
+            vendorName: string | null;
+            vendorContactName: string | null;
+            vendorContactPhone: string | null;
             riskAssessment: string | null;
             scope: string | null;
             sla: string | null;
             liability: string | null;
             paymentTermsDetails: string | null;
+            paymentAccount: string | null;
+            bankName: string | null;
+            accountName: string | null;
+            penalties: string | null;
+            warranty: string | null;
+            confidentiality: string | null;
+            disputeResolution: string | null;
+            specialTerms: string | null;
             drafterId: string | null;
             approverId: string | null;
             isActive: boolean;
         };
         invoices: {
             id: string;
-            contractId: string;
-            amount: number;
+            createdAt: Date;
             status: import("@prisma/client").$Enums.InvoiceStatus;
+            type: import("@prisma/client").$Enums.InvoiceType;
+            description: string | null;
+            updatedAt: Date;
+            amount: number;
+            contractId: string;
             dueDate: Date;
             invoiceDate: Date;
-            createdAt: Date;
             invoiceNumber: string;
-            projectId: string | null;
-            milestoneId: string | null;
             taxRate: number;
             taxAmount: number;
             totalAmount: number;
-            type: import("@prisma/client").$Enums.InvoiceType;
             currency: string;
             exchangeRate: number | null;
-            description: string | null;
             remarks: string | null;
             filePath: string | null;
             fileName: string | null;
-            updatedAt: Date;
+            projectId: string | null;
+            milestoneId: string | null;
         }[];
         resources: ({
             user: {
@@ -264,9 +323,9 @@ export declare class ProjectsService {
             };
         } & {
             id: string;
+            projectId: string;
             startDate: Date | null;
             endDate: Date | null;
-            projectId: string;
             role: string;
             userId: string;
             allocationPct: number;
@@ -274,9 +333,9 @@ export declare class ProjectsService {
         meetings: {
             id: string;
             createdAt: Date;
-            projectId: string;
-            type: import("@prisma/client").$Enums.ProjectMeetingType;
             title: string;
+            type: import("@prisma/client").$Enums.ProjectMeetingType;
+            projectId: string;
             filename: string | null;
             filepath: string | null;
             mimetype: string | null;
@@ -286,23 +345,40 @@ export declare class ProjectsService {
         }[];
         risks: {
             id: string;
-            status: import("@prisma/client").$Enums.ProjectRiskStatus;
             createdAt: Date;
-            projectId: string;
+            status: import("@prisma/client").$Enums.ProjectRiskStatus;
             description: string;
+            projectId: string;
             impact: import("@prisma/client").$Enums.ProjectRiskImpact;
             mitigationPlan: string | null;
         }[];
+        fundTransactions: {
+            id: string;
+            createdAt: Date;
+            status: import("@prisma/client").$Enums.FundTransactionStatus;
+            type: import("@prisma/client").$Enums.FundTransactionType;
+            description: string | null;
+            updatedAt: Date;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            projectId: string | null;
+            transactionDate: Date | null;
+            partyName: string | null;
+            principalAmount: import("@prisma/client/runtime/library").Decimal;
+            expectedDuration: number | null;
+            costRuleType: string | null;
+            costRate: import("@prisma/client/runtime/library").Decimal | null;
+            passThreshold: import("@prisma/client/runtime/library").Decimal | null;
+        }[];
     } & {
         id: string;
-        contractId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
-        startDate: Date | null;
-        endDate: Date | null;
+        status: import("@prisma/client").$Enums.ProjectStatus;
+        laborCost: import("@prisma/client/runtime/library").Decimal | null;
         description: string | null;
         updatedAt: Date;
-        laborCost: import("@prisma/client/runtime/library").Decimal | null;
+        contractId: string;
+        startDate: Date | null;
+        endDate: Date | null;
         budget: import("@prisma/client/runtime/library").Decimal | null;
         targetProfitMargin: import("@prisma/client/runtime/library").Decimal | null;
         outsourceCost: import("@prisma/client/runtime/library").Decimal | null;
@@ -314,17 +390,20 @@ export declare class ProjectsService {
         complexity: import("@prisma/client").$Enums.ProjectComplexity;
         financialRemarks: string | null;
         isDelayed: boolean;
+        requiresInvoicing: boolean;
+        invoicingCompleted: boolean;
+        invoicingCompletedAt: Date | null;
     }) | null>;
     update(id: string, data: any): Promise<{
         id: string;
-        contractId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
-        startDate: Date | null;
-        endDate: Date | null;
+        status: import("@prisma/client").$Enums.ProjectStatus;
+        laborCost: import("@prisma/client/runtime/library").Decimal | null;
         description: string | null;
         updatedAt: Date;
-        laborCost: import("@prisma/client/runtime/library").Decimal | null;
+        contractId: string;
+        startDate: Date | null;
+        endDate: Date | null;
         budget: import("@prisma/client/runtime/library").Decimal | null;
         targetProfitMargin: import("@prisma/client/runtime/library").Decimal | null;
         outsourceCost: import("@prisma/client/runtime/library").Decimal | null;
@@ -336,21 +415,24 @@ export declare class ProjectsService {
         complexity: import("@prisma/client").$Enums.ProjectComplexity;
         financialRemarks: string | null;
         isDelayed: boolean;
+        requiresInvoicing: boolean;
+        invoicingCompleted: boolean;
+        invoicingCompletedAt: Date | null;
     }>;
     addResource(projectId: string, data: any): Promise<{
         id: string;
+        projectId: string;
         startDate: Date | null;
         endDate: Date | null;
-        projectId: string;
         role: string;
         userId: string;
         allocationPct: number;
     }>;
     removeResource(id: string): Promise<{
         id: string;
+        projectId: string;
         startDate: Date | null;
         endDate: Date | null;
-        projectId: string;
         role: string;
         userId: string;
         allocationPct: number;
@@ -358,9 +440,9 @@ export declare class ProjectsService {
     createMeeting(projectId: string, data: any): Promise<{
         id: string;
         createdAt: Date;
-        projectId: string;
-        type: import("@prisma/client").$Enums.ProjectMeetingType;
         title: string;
+        type: import("@prisma/client").$Enums.ProjectMeetingType;
+        projectId: string;
         filename: string | null;
         filepath: string | null;
         mimetype: string | null;
@@ -371,9 +453,9 @@ export declare class ProjectsService {
     updateMeeting(id: string, data: any): Promise<{
         id: string;
         createdAt: Date;
-        projectId: string;
-        type: import("@prisma/client").$Enums.ProjectMeetingType;
         title: string;
+        type: import("@prisma/client").$Enums.ProjectMeetingType;
+        projectId: string;
         filename: string | null;
         filepath: string | null;
         mimetype: string | null;
@@ -383,28 +465,28 @@ export declare class ProjectsService {
     }>;
     addRisk(projectId: string, data: any): Promise<{
         id: string;
-        status: import("@prisma/client").$Enums.ProjectRiskStatus;
         createdAt: Date;
-        projectId: string;
+        status: import("@prisma/client").$Enums.ProjectRiskStatus;
         description: string;
+        projectId: string;
         impact: import("@prisma/client").$Enums.ProjectRiskImpact;
         mitigationPlan: string | null;
     }>;
     updateRisk(id: string, data: any): Promise<{
         id: string;
-        status: import("@prisma/client").$Enums.ProjectRiskStatus;
         createdAt: Date;
-        projectId: string;
+        status: import("@prisma/client").$Enums.ProjectRiskStatus;
         description: string;
+        projectId: string;
         impact: import("@prisma/client").$Enums.ProjectRiskImpact;
         mitigationPlan: string | null;
     }>;
     addMeetingAttachment(meetingId: string, file: Express.Multer.File): Promise<{
         id: string;
         createdAt: Date;
-        projectId: string;
-        type: import("@prisma/client").$Enums.ProjectMeetingType;
         title: string;
+        type: import("@prisma/client").$Enums.ProjectMeetingType;
+        projectId: string;
         filename: string | null;
         filepath: string | null;
         mimetype: string | null;
@@ -415,9 +497,9 @@ export declare class ProjectsService {
     deleteMeeting(id: string): Promise<{
         id: string;
         createdAt: Date;
-        projectId: string;
-        type: import("@prisma/client").$Enums.ProjectMeetingType;
         title: string;
+        type: import("@prisma/client").$Enums.ProjectMeetingType;
+        projectId: string;
         filename: string | null;
         filepath: string | null;
         mimetype: string | null;

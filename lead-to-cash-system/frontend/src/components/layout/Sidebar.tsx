@@ -9,7 +9,11 @@ import {
     Truck,
     CreditCard,
     LogOut,
-    Briefcase
+    Briefcase,
+    Users,
+    Settings,
+    Building2,
+    Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,10 +25,14 @@ export default function Sidebar() {
 
     const navItems = [
         { name: t("nav.dashboard") || "Dashboard", href: '/', icon: LayoutDashboard },
-        { name: t("nav.opportunities") || "Opportunities", href: '/opportunities', icon: Briefcase }, // Use Briefcase or Lightbulb
+        { name: t("nav.opportunities") || "Opportunities", href: '/opportunities', icon: Briefcase },
         { name: t("nav.contracts") || "Contracts", href: '/contracts', icon: FileText },
         { name: t("nav.delivery") || "Project Delivery", href: '/delivery', icon: Truck },
         { name: t("nav.finance") || "Finance & Payment", href: '/finance', icon: CreditCard },
+        { name: "客户管理", href: '/customers', icon: Users },
+        { name: "厂商管理", href: '/settings/vendors', icon: Building2 },
+        { name: "收款账户配置", href: '/settings/payment-accounts', icon: Wallet },
+        { name: "内部人员管理", href: '/settings/users', icon: Settings },
     ];
 
     return (
@@ -32,7 +40,7 @@ export default function Sidebar() {
             <div className="p-6">
                 <h1 className="text-xl font-bold flex items-center gap-2">
                     <Briefcase className="text-blue-400" />
-                    Lead2Cash
+                    RightMagic LTC
                 </h1>
             </div>
 

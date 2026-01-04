@@ -22,12 +22,14 @@ const audit_module_1 = require("./audit/audit.module");
 const dashboard_module_1 = require("./dashboard/dashboard.module");
 const projects_module_1 = require("./projects/projects.module");
 const finance_module_1 = require("./finance/finance.module");
+const vendors_module_1 = require("./vendors/vendors.module");
+const payment_accounts_module_1 = require("./payment-accounts/payment-accounts.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, customers_module_1.CustomersModule, opportunities_module_1.OpportunitiesModule, contracts_module_1.ContractsModule, milestones_module_1.MilestonesModule, procurements_module_1.ProcurementsModule, auth_module_1.AuthModule, users_module_1.UsersModule, audit_module_1.AuditModule, dashboard_module_1.DashboardModule, projects_module_1.ProjectsModule, finance_module_1.FinanceModule],
+        imports: [prisma_module_1.PrismaModule, customers_module_1.CustomersModule, opportunities_module_1.OpportunitiesModule, contracts_module_1.ContractsModule, milestones_module_1.MilestonesModule, procurements_module_1.ProcurementsModule, auth_module_1.AuthModule, users_module_1.UsersModule, audit_module_1.AuditModule, dashboard_module_1.DashboardModule, projects_module_1.ProjectsModule, finance_module_1.FinanceModule, vendors_module_1.VendorsModule, payment_accounts_module_1.PaymentAccountsModule],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
     })

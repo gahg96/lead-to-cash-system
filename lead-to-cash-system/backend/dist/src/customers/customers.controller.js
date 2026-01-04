@@ -28,6 +28,9 @@ let CustomersController = class CustomersController {
     findAll() {
         return this.customersService.findAll();
     }
+    getCityDistribution() {
+        return this.customersService.getCityDistribution();
+    }
     findOne(id) {
         return this.customersService.findOne(id);
     }
@@ -49,6 +52,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], CustomersController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('stats/distribution'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], CustomersController.prototype, "getCityDistribution", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

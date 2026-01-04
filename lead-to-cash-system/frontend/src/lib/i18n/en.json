@@ -72,6 +72,7 @@
             "companyName": "e.g. Acme Corporation",
             "selectIndustry": "Select industry",
             "selectSize": "Select size",
+            "selectBusinessType": "Select business type",
             "contactName": "John Smith",
             "contactTitle": "CTO",
             "contactPhone": "+1 555 000 0000",
@@ -104,6 +105,7 @@
         "dealType": "Deal Type",
         "deliveryModel": "Delivery Model",
         "estimatedEffort": "Estimated Effort (Days)",
+        "businessType": "Business Type",
         "richDescription": "Detailed Description",
         "create": "Create Lead",
         "creating": "Creating...",
@@ -238,6 +240,13 @@
             "technology": "Technology",
             "healthcare": "Healthcare",
             "other": "Other"
+        },
+        "businessType": {
+            "PROJECT_DEVELOPMENT": "Project Development",
+            "OUTSOURCING": "Outsourcing",
+            "PRODUCT_SALES": "Product Sales",
+            "CONSULTING": "Consulting",
+            "OTHER": "Other"
         }
     },
     "common": {
@@ -259,7 +268,8 @@
             "resources": "Team Allocation",
             "communication": "Comm Plan",
             "risks": "Risk Tracking",
-            "profit": "Profit Analysis"
+            "profit": "Profit Analysis",
+            "funds": "Fund Management"
         },
         "fields": {
             "financials": "Project Financials",
@@ -356,6 +366,62 @@
             "action": "Action",
             "invoiceNumber": "Invoice #",
             "date": "Date"
+        },
+        "financialOps": {
+            "title": "Project Financial Operations",
+            "subtitle": "Manage project income and expenditure details.",
+            "cards": {
+                "netProfit": "Net Profit",
+                "margin": "Profit Margin",
+                "totalIncome": "Total Income (Tax Inc.)",
+                "totalIncomeDesc": "/ Contract Value",
+                "totalExpense": "Total Expense",
+                "totalExpenseDesc": "Includes Labor, Purchase & Funds Cost",
+                "fundsAdvanced": "Funds Advanced",
+                "fundsAdvancedDesc": "Current Funds Advanced"
+            },
+            "ledger": {
+                "title": "Expenditure Ledger",
+                "subtitle": "Includes Labor, Purchase, and all Transaction Expenses",
+                "quickAdd": "Quick Add Transaction",
+                "table": {
+                    "date": "Date",
+                    "type": "Type",
+                    "party": "Party",
+                    "desc": "Description",
+                    "amount": "Amount",
+                    "action": "Action",
+                    "noData": "No transaction records"
+                },
+                "types": {
+                    "advance": "Advance Payment",
+                    "passthrough": "Pass-through",
+                    "simplePass": "Simple Pass-through",
+                    "boost": "Revenue Boost",
+                    "expenseOnly": "Expense Only"
+                }
+            },
+            "groups": {
+                "labor": "Labor Cost",
+                "purchase": "Third-Party Purchase",
+                "ledger": "Transaction Ledger",
+                "other": "Other Expenses",
+                "remarks": "Financial Remarks"
+            },
+            "fields": {
+                "laborCost": "Labor Cost",
+                "emergencySupport": "Emergency Support",
+                "projectComplexity": "Complexity",
+                "outsource": "Outsource Cost",
+                "equipment": "3rd Party Equipment",
+                "software": "Software Cost",
+                "travel": "Travel Cost",
+                "misc": "Misc Expenses",
+                "formula": "Formula: Contract Value × {{rate}}% (Complexity Factor)",
+                "autoCalc": "Auto Calc",
+                "remarksPlaceholder": "Enter financial remarks...",
+                "noRemarks": "No remarks"
+            }
         }
     },
     "contract": {
@@ -402,6 +468,11 @@
             "name": "Name",
             "namePlaceholder": "e.g. Initial Payment"
         },
+        "actions": {
+            "manageStatus": "Manage Status",
+            "manageStatusDesc": "Force update contract status. Note: this might skip approval workflows.",
+            "Placeholder": "Select new status"
+        },
         "fields": {
             "scope": "Scope",
             "sla": "SLA",
@@ -419,6 +490,28 @@
             "download": "Download",
             "uploadedBy": "Uploaded by",
             "empty": "No attachments yet."
+        },
+        "status": {
+            "Draft": "Draft",
+            "CustomerReview": "Customer Review",
+            "InternalReview": "Internal Review",
+            "CustomerSeal": "Customer Seal",
+            "InternalSeal": "Internal Seal",
+            "Signed": "Signed",
+            "Terminated": "Terminated"
+        },
+        "analytics": {
+            "totalValue": "Total Contract Value",
+            "totalValueDesc": "Sum of all contract values",
+            "signedValue": "Signed Contract Value",
+            "signedValueDesc": "Sum of all signed contracts",
+            "signingRate": "Signing Rate",
+            "signingRateDesc": "Based on contract count",
+            "topDrafter": "Top Drafter",
+            "topDrafterDesc": "Most signed contracts",
+            "statusDist": "Status Distribution (Count)",
+            "valueDist": "Value Distribution (Status)",
+            "drafterRanking": "Drafter Ranking"
         }
     }
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { api } from '@/lib/api';
 import {
     FunnelChart,
@@ -12,6 +13,7 @@ import {
     Cell
 } from 'recharts';
 import { Loader2, DollarSign, Briefcase, TrendingUp } from 'lucide-react';
+import { CustomerMap } from '@/components/dashboard/CustomerMap';
 
 interface DashboardStats {
     totalContractValue: number;
@@ -58,7 +60,7 @@ export default function DashboardPage() {
     }, []);
 
     if (loading) {
-        return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-8 w-8 text-blue-600" /></div>;
+        return <DashboardSkeleton />;
     }
 
     return (
@@ -113,7 +115,7 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            {/* Sales Funnel */}
+            {/* Sales Funnel and Map */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="col-span-1 min-h-[400px]">
                     <CardHeader>
@@ -142,13 +144,8 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {/* Placeholder for Recent Activity or other chart */}
-                <Card className="col-span-1 min-h-[400px] flex items-center justify-center bg-slate-50 border-dashed">
-                    <div className="text-center text-slate-400">
-                        <p>More Insights Coming Soon</p>
-                        <p className="text-sm">(Drill-down views, Recent Activities)</p>
-                    </div>
-                </Card>
+                {/* Customer Distribution Map */}
+                <CustomerMap />
             </div>
         </div>
     );

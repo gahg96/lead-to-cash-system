@@ -28,6 +28,9 @@ export const leadSchema = z.object({
     estimatedEffort: z.coerce.number().min(0).optional(),
     richDescription: z.string().optional(),
 
+    // Business Type
+    businessType: z.string().optional(),
+
     // Financial fields
     projectBudget: z.coerce.number().min(0).optional(),
     businessCost: z.coerce.number().min(0).optional(),

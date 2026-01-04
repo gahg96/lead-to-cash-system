@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateProcurementDto } from './create-procurement.dto';
-import { IsOptional, IsEnum, IsString } from 'class-validator';
+import { IsOptional, IsEnum, IsString, IsNumber } from 'class-validator';
 
 export enum ProcurementStatus {
     Draft = 'Draft',
@@ -17,6 +17,9 @@ export class UpdateProcurementDto extends PartialType(CreateProcurementDto) {
     status?: ProcurementStatus;
 
     @IsOptional()
-    @IsString()
-    resultNote?: string;
+    @IsNumber()
+    wonPrice?: number;
+
+    @IsOptional()
+    lineItems?: { name: string; type: string; amount: number; description?: string }[];
 }

@@ -71,6 +71,9 @@ let ProjectsService = class ProjectsService {
                 },
                 invoices: {
                     orderBy: { createdAt: 'desc' }
+                },
+                fundTransactions: {
+                    orderBy: { createdAt: 'desc' }
                 }
             }
         });

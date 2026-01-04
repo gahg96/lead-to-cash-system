@@ -11,15 +11,17 @@ const common_1 = require("@nestjs/common");
 const finance_controller_1 = require("./finance.controller");
 const finance_service_1 = require("./finance.service");
 const prisma_module_1 = require("../prisma/prisma.module");
+const fund_controller_1 = require("./fund.controller");
+const fund_service_1 = require("./fund.service");
 let FinanceModule = class FinanceModule {
 };
 exports.FinanceModule = FinanceModule;
 exports.FinanceModule = FinanceModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
-        controllers: [finance_controller_1.FinanceController],
-        providers: [finance_service_1.FinanceService],
-        exports: [finance_service_1.FinanceService],
+        controllers: [finance_controller_1.FinanceController, fund_controller_1.FundController],
+        providers: [finance_service_1.FinanceService, fund_service_1.FundService],
+        exports: [finance_service_1.FinanceService, fund_service_1.FundService],
     })
 ], FinanceModule);
 //# sourceMappingURL=finance.module.js.map

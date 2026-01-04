@@ -8,11 +8,11 @@ export declare class OpportunitiesController {
     constructor(opportunitiesService: OpportunitiesService);
     create(createOpportunityDto: CreateOpportunityDto, req: any): Promise<{
         id: string;
-        status: import("@prisma/client").$Enums.OpportunityStatus;
         createdAt: Date;
         opportunityNumber: string | null;
         customerId: string;
         title: string;
+        status: import("@prisma/client").$Enums.OpportunityStatus;
         estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
         probability: number | null;
         source: string | null;
@@ -31,11 +31,11 @@ export declare class OpportunitiesController {
         otherCost: import("@prisma/client/runtime/library").Decimal | null;
         grossProfit: import("@prisma/client/runtime/library").Decimal | null;
         profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+        businessType: import("@prisma/client").$Enums.BusinessType | null;
     }>;
     findAll(): Promise<({
         customer: {
             id: string;
-            createdAt: Date;
             companyName: string;
             industry: string | null;
             companySize: string | null;
@@ -45,14 +45,38 @@ export declare class OpportunitiesController {
             contactTitle: string | null;
             contactPhone: string | null;
             contactEmail: string | null;
+            createdAt: Date;
         };
+        procurements: {
+            id: string;
+            createdAt: Date;
+            status: import("@prisma/client").$Enums.ProcurementStatus;
+            type: import("@prisma/client").$Enums.ProcurementType;
+            updatedAt: Date;
+            procurementNumber: string;
+            opportunityId: string;
+            commercialOwner: string | null;
+            technicalOwner: string | null;
+            customerBudget: import("@prisma/client/runtime/library").Decimal | null;
+            ourQuote: import("@prisma/client/runtime/library").Decimal | null;
+            submissionDeadline: Date | null;
+            notificationDate: Date | null;
+            bidLocation: string | null;
+            depositAmount: import("@prisma/client/runtime/library").Decimal | null;
+            notes: string | null;
+            resultNote: string | null;
+            wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+            tenderFee: import("@prisma/client/runtime/library").Decimal | null;
+            agencyFee: import("@prisma/client/runtime/library").Decimal | null;
+            printingFee: import("@prisma/client/runtime/library").Decimal | null;
+        }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.OpportunityStatus;
         createdAt: Date;
         opportunityNumber: string | null;
         customerId: string;
         title: string;
+        status: import("@prisma/client").$Enums.OpportunityStatus;
         estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
         probability: number | null;
         source: string | null;
@@ -71,11 +95,11 @@ export declare class OpportunitiesController {
         otherCost: import("@prisma/client/runtime/library").Decimal | null;
         grossProfit: import("@prisma/client/runtime/library").Decimal | null;
         profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+        businessType: import("@prisma/client").$Enums.BusinessType | null;
     })[]>;
     findOne(id: string): Promise<({
         customer: {
             id: string;
-            createdAt: Date;
             companyName: string;
             industry: string | null;
             companySize: string | null;
@@ -85,34 +109,76 @@ export declare class OpportunitiesController {
             contactTitle: string | null;
             contactPhone: string | null;
             contactEmail: string | null;
+            createdAt: Date;
         };
+        vendors: {
+            id: string;
+            industry: string | null;
+            contactName: string | null;
+            contactPhone: string | null;
+            createdAt: Date;
+            name: string;
+            type: string | null;
+            region: string | null;
+            brand: string | null;
+            parentId: string | null;
+            description: string | null;
+            updatedAt: Date;
+        }[];
         contracts: {
             id: string;
-            status: import("@prisma/client").$Enums.ContractStatus;
             createdAt: Date;
-            contractNumber: string;
+            status: import("@prisma/client").$Enums.ContractStatus;
+            estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
             opportunityId: string;
+            wonPrice: import("@prisma/client/runtime/library").Decimal | null;
+            contractNumber: string;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
             endDate: Date | null;
+            customerContactName: string | null;
+            customerContactPhone: string | null;
+            customerContactEmail: string | null;
+            customerContactTitle: string | null;
+            vendorName: string | null;
+            vendorContactName: string | null;
+            vendorContactPhone: string | null;
             riskAssessment: string | null;
             scope: string | null;
             sla: string | null;
             liability: string | null;
             paymentTermsDetails: string | null;
+            paymentAccount: string | null;
+            bankName: string | null;
+            accountName: string | null;
+            penalties: string | null;
+            warranty: string | null;
+            confidentiality: string | null;
+            disputeResolution: string | null;
+            specialTerms: string | null;
             drafterId: string | null;
             approverId: string | null;
             isActive: boolean;
         }[];
-        followUps: {
+        followUps: ({
+            user: {
+                id: string;
+                createdAt: Date;
+                username: string;
+                passwordHash: string;
+                displayName: string;
+                role: import("@prisma/client").$Enums.UserRole;
+                email: string | null;
+            } | null;
+        } & {
             id: string;
             createdAt: Date;
             opportunityId: string;
             content: string;
             createdBy: string | null;
             createdById: string | null;
-        }[];
+        })[];
         attachments: {
             id: string;
             createdAt: Date;
@@ -124,11 +190,11 @@ export declare class OpportunitiesController {
         }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.OpportunityStatus;
         createdAt: Date;
         opportunityNumber: string | null;
         customerId: string;
         title: string;
+        status: import("@prisma/client").$Enums.OpportunityStatus;
         estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
         probability: number | null;
         source: string | null;
@@ -147,11 +213,11 @@ export declare class OpportunitiesController {
         otherCost: import("@prisma/client/runtime/library").Decimal | null;
         grossProfit: import("@prisma/client/runtime/library").Decimal | null;
         profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+        businessType: import("@prisma/client").$Enums.BusinessType | null;
     }) | null>;
     update(id: string, updateOpportunityDto: UpdateOpportunityDto): Promise<{
         customer: {
             id: string;
-            createdAt: Date;
             companyName: string;
             industry: string | null;
             companySize: string | null;
@@ -161,14 +227,29 @@ export declare class OpportunitiesController {
             contactTitle: string | null;
             contactPhone: string | null;
             contactEmail: string | null;
+            createdAt: Date;
         };
+        vendors: {
+            id: string;
+            industry: string | null;
+            contactName: string | null;
+            contactPhone: string | null;
+            createdAt: Date;
+            name: string;
+            type: string | null;
+            region: string | null;
+            brand: string | null;
+            parentId: string | null;
+            description: string | null;
+            updatedAt: Date;
+        }[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.OpportunityStatus;
         createdAt: Date;
         opportunityNumber: string | null;
         customerId: string;
         title: string;
+        status: import("@prisma/client").$Enums.OpportunityStatus;
         estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
         probability: number | null;
         source: string | null;
@@ -187,6 +268,7 @@ export declare class OpportunitiesController {
         otherCost: import("@prisma/client/runtime/library").Decimal | null;
         grossProfit: import("@prisma/client/runtime/library").Decimal | null;
         profitMargin: import("@prisma/client/runtime/library").Decimal | null;
+        businessType: import("@prisma/client").$Enums.BusinessType | null;
     }>;
     createFollowUp(id: string, dto: CreateFollowUpDto, req: any): Promise<{
         id: string;

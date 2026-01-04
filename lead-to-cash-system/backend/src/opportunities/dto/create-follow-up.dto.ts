@@ -1,4 +1,11 @@
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+
 export class CreateFollowUpDto {
-    content: string; // HTML content from rich text editor
+    @IsString()
+    @IsNotEmpty()
+    content: string;
+
+    @IsString()
+    @IsOptional()
     createdBy?: string;
 }

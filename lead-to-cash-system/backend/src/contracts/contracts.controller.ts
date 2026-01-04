@@ -6,6 +6,7 @@ import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ContractStatus } from '@prisma/client';
 
 @Controller('contracts')
 @UseGuards(JwtAuthGuard)
@@ -19,8 +20,21 @@ export class ContractsController {
     }
 
     @Post()
-    create(@Body() createContractDto: CreateContractDto, @Request() req) {
-        return this.contractsService.create(createContractDto, req.user.userId);
+    async create(@Body() createContractDto: CreateContractDto, @Request() req) {
+        try {
+            console.log('[ContractsController] Received create request');
+            console.log('[ContractsController] DTO:', JSON.stringify(createContractDto, null, 2));
+            console.log('[ContractsController] User:', req.user);
+
+            const result = await this.contractsService.create(createContractDto, req.user.userId);
+
+            console.log('[ContractsController] Contract created successfully');
+            return result;
+        } catch (error) {
+            console.error('[ContractsController] ERROR:', error.message);
+            console.error('[ContractsController] Stack:', error.stack);
+            throw error;
+        }
     }
 
     @Get()
@@ -38,26 +52,35 @@ export class ContractsController {
         return this.contractsService.update(id, updateContractDto);
     }
 
-    // Approval Workflow Endpoints
-    @Post(':id/submit')
-    submit(@Param('id') id: string) {
-        return this.contractsService.submitForApproval(id);
+    // Approval Workflow Endpoints - Updated
+    @Post(':id/submit-customer')
+    submitCustomer(@Param('id') id: string) {
+        return this.contractsService.submitForCustomerReview(id);
     }
 
-    @Post(':id/approve')
-    approve(@Param('id') id: string, @Request() req) {
-        // TODO: Verify user role is MANAGER (handled by Guards later, simpler for now)
-        return this.contractsService.approve(id, req.user.userId);
+    @Post(':id/pass-customer')
+    passCustomer(@Param('id') id: string) {
+        return this.contractsService.passCustomerReview(id);
     }
 
-    @Post(':id/reject')
-    reject(@Param('id') id: string, @Request() req) {
-        return this.contractsService.reject(id, req.user.userId);
+    @Post(':id/pass-internal')
+    passInternal(@Param('id') id: string) {
+        return this.contractsService.passInternalReview(id);
     }
 
-    @Post(':id/sign')
-    sign(@Param('id') id: string) {
-        return this.contractsService.sign(id);
+    @Post(':id/customer-seal')
+    customerSeal(@Param('id') id: string) {
+        return this.contractsService.customerSeal(id);
+    }
+
+    @Post(':id/internal-seal')
+    internalSeal(@Param('id') id: string) {
+        return this.contractsService.internalSeal(id);
+    }
+
+    @Patch(':id/status')
+    forceUpdateStatus(@Param('id') id: string, @Body('status') status: ContractStatus) {
+        return this.contractsService.forceUpdateStatus(id, status);
     }
 
     @Delete(':id')
@@ -105,6 +128,11 @@ export class ContractsController {
     @Patch('milestones/:mid')
     updateMilestone(@Param('mid') mid: string, @Body() data: any) {
         return this.contractsService.updateMilestone(mid, data);
+    }
+
+    @Post(':id/milestones/defaults')
+    initializeDefaultMilestones(@Param('id') id: string) {
+        return this.contractsService.initializeDefaultMilestones(id);
     }
 
     @Delete('milestones/:mid')

@@ -115,6 +115,7 @@ let ProcurementsService = class ProcurementsService {
                 },
                 documents: true,
                 tasks: { orderBy: { sortOrder: 'asc' } },
+                lineItems: { orderBy: { sortOrder: 'asc' } },
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -128,6 +129,7 @@ let ProcurementsService = class ProcurementsService {
                 },
                 documents: true,
                 tasks: { orderBy: { sortOrder: 'asc' } },
+                lineItems: { orderBy: { sortOrder: 'asc' } },
             },
         });
     }
@@ -139,17 +141,39 @@ let ProcurementsService = class ProcurementsService {
         if (data.notificationDate && typeof data.notificationDate === 'string') {
             data.notificationDate = new Date(data.notificationDate);
         }
-        return this.prisma.procurement.update({
+        const { lineItems, ...rest } = data;
+        const updateData = { ...rest };
+        if (lineItems) {
+            updateData.lineItems = {
+                deleteMany: {},
+                create: lineItems.map((item, index) => ({
+                    name: item.name,
+                    type: item.type,
+                    amount: item.amount,
+                    description: item.description,
+                    sortOrder: index
+                }))
+            };
+        }
+        const result = await this.prisma.procurement.update({
             where: { id },
-            data,
+            data: updateData,
             include: {
                 opportunity: {
                     include: { customer: true }
                 },
                 documents: true,
                 tasks: { orderBy: { sortOrder: 'asc' } },
+                lineItems: { orderBy: { sortOrder: 'asc' } },
             },
         });
+        if (updateProcurementDto.status === 'Won') {
+            await this.prisma.opportunity.update({
+                where: { id: result.opportunityId },
+                data: { status: 'Won' }
+            });
+        }
+        return result;
     }
     async remove(id) {
         return this.prisma.procurement.delete({
@@ -200,6 +224,26 @@ let ProcurementsService = class ProcurementsService {
             where: { procurementId },
             orderBy: { createdAt: 'desc' },
         });
+    }
+    async deleteDocument(documentId) {
+        const doc = await this.prisma.procurementDocument.findUnique({
+            where: { id: documentId }
+        });
+        if (doc) {
+            await this.prisma.procurementDocument.delete({
+                where: { id: documentId }
+            });
+            try {
+                const fs = require('fs');
+                if (fs.existsSync(doc.filepath)) {
+                    fs.unlinkSync(doc.filepath);
+                }
+            }
+            catch (err) {
+                console.error('Failed to delet file from disk:', err);
+            }
+        }
+        return doc;
     }
 };
 exports.ProcurementsService = ProcurementsService;

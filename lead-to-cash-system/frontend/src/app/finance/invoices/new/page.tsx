@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,8 +43,12 @@ export default function NewInvoicePage() {
         try {
             const data = await api.get('/contracts');
             setContracts(data);
+            if (data.length === 0) {
+                console.warn("No contracts returned from API");
+            }
         } catch (error) {
             console.error('Failed to fetch contracts:', error);
+            toast.error("加载合同列表失败");
         }
     };
 
@@ -125,9 +130,11 @@ export default function NewInvoicePage() {
                                         <SelectValue placeholder="选择合同" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {contracts.map((contract) => (
+                                        {contracts.length === 0 ? (
+                                            <SelectItem value="none" disabled>暂无可用合同</SelectItem>
+                                        ) : contracts.map((contract) => (
                                             <SelectItem key={contract.id} value={contract.id}>
-                                                {contract.opportunity?.customer?.companyName || 'Unknown'} - ¥{contract.totalContractValue?.toLocaleString()}
+                                                {contract.contractNumber} - {contract.opportunity?.customer?.companyName || 'Unknown'} (¥{contract.totalContractValue?.toLocaleString()})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

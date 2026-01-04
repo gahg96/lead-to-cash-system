@@ -122,6 +122,7 @@ export class ProcurementsService {
                 },
                 documents: true,
                 tasks: { orderBy: { sortOrder: 'asc' } },
+                lineItems: { orderBy: { sortOrder: 'asc' } },
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -136,6 +137,7 @@ export class ProcurementsService {
                 },
                 documents: true,
                 tasks: { orderBy: { sortOrder: 'asc' } },
+                lineItems: { orderBy: { sortOrder: 'asc' } },
             },
         });
     }
@@ -150,17 +152,48 @@ export class ProcurementsService {
             data.notificationDate = new Date(data.notificationDate);
         }
 
-        return this.prisma.procurement.update({
+        // Separate lineItems from other data
+        const { lineItems, ...rest } = data;
+
+        // Prepare update operations
+        const updateData: any = { ...rest };
+
+        // Handle nested writes for lineItems if provided
+        if (lineItems) {
+            updateData.lineItems = {
+                deleteMany: {}, // Clear existing items
+                create: lineItems.map((item: any, index: number) => ({
+                    name: item.name,
+                    type: item.type,
+                    amount: item.amount,
+                    description: item.description,
+                    sortOrder: index
+                }))
+            };
+        }
+
+        const result = await this.prisma.procurement.update({
             where: { id },
-            data,
+            data: updateData,
             include: {
                 opportunity: {
                     include: { customer: true }
                 },
                 documents: true,
                 tasks: { orderBy: { sortOrder: 'asc' } },
+                lineItems: { orderBy: { sortOrder: 'asc' } }, // Include new relation
             },
         });
+
+        // Automation: If status is 'Won', update opportunity status to 'Won'
+        if ((updateProcurementDto as any).status === 'Won') {
+            await this.prisma.opportunity.update({
+                where: { id: result.opportunityId },
+                data: { status: 'Won' }
+            });
+        }
+
+        return result;
     }
 
     async remove(id: string) {
@@ -226,5 +259,29 @@ export class ProcurementsService {
             where: { procurementId },
             orderBy: { createdAt: 'desc' },
         });
+    }
+    // Delete document
+    async deleteDocument(documentId: string) {
+        const doc = await this.prisma.procurementDocument.findUnique({
+            where: { id: documentId }
+        });
+
+        if (doc) {
+            // Delete from database
+            await this.prisma.procurementDocument.delete({
+                where: { id: documentId }
+            });
+
+            // Delete from filesystem
+            try {
+                const fs = require('fs');
+                if (fs.existsSync(doc.filepath)) {
+                    fs.unlinkSync(doc.filepath);
+                }
+            } catch (err) {
+                console.error('Failed to delet file from disk:', err);
+            }
+        }
+        return doc;
     }
 }

@@ -105,23 +105,49 @@ let UsersService = class UsersService {
     }
     async create(data) {
         const salt = await bcrypt.genSalt();
-        const hash = await bcrypt.hash(data.passwordHash, salt);
+        const passwordToHash = data.password || data.passwordHash;
+        const hash = await bcrypt.hash(passwordToHash, salt);
+        const { password, ...rest } = data;
         return this.prisma.user.create({
             data: {
-                ...data,
+                ...rest,
                 passwordHash: hash,
             }
         });
     }
     async findAll() {
         try {
-            const users = await this.prisma.user.findMany();
-            return JSON.parse(JSON.stringify(users));
+            const users = await this.prisma.user.findMany({
+                orderBy: { createdAt: 'desc' }
+            });
+            return JSON.parse(JSON.stringify(users.map(u => {
+                const { passwordHash, ...rest } = u;
+                return rest;
+            })));
         }
         catch (error) {
             console.error('UsersService.findAll error:', error);
             throw error;
         }
+    }
+    async update(id, data) {
+        const updateData = { ...data };
+        if (updateData.password) {
+            const salt = await bcrypt.genSalt();
+            updateData.passwordHash = await bcrypt.hash(updateData.password, salt);
+            delete updateData.password;
+        }
+        const user = await this.prisma.user.update({
+            where: { id },
+            data: updateData
+        });
+        const { passwordHash, ...rest } = user;
+        return rest;
+    }
+    async remove(id) {
+        return this.prisma.user.delete({
+            where: { id }
+        });
     }
 };
 exports.UsersService = UsersService;
