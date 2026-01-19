@@ -17,9 +17,14 @@ import { ProjectsModule } from './projects/projects.module';
 import { FinanceModule } from './finance/finance.module';
 import { VendorsModule } from './vendors/vendors.module';
 import { PaymentAccountsModule } from './payment-accounts/payment-accounts.module';
+import { AiModule } from './ai/ai.module';
+
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [PrismaModule, CustomersModule, OpportunitiesModule, ContractsModule, MilestonesModule, ProcurementsModule, AuthModule, UsersModule, AuditModule, DashboardModule, ProjectsModule, FinanceModule, VendorsModule, PaymentAccountsModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule, CustomersModule, OpportunitiesModule, ContractsModule, MilestonesModule, ProcurementsModule, AuthModule, UsersModule, AuditModule, DashboardModule, ProjectsModule, FinanceModule, VendorsModule, PaymentAccountsModule, AiModule],
   controllers: [AppController],
   providers: [AppService],
 })

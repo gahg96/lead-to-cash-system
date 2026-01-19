@@ -116,6 +116,7 @@
         "contracts": "Contracts",
         "delivery": "Project Delivery",
         "finance": "Finance",
+        "invoices": "Invoices",
         "logout": "Logout",
         "back": "Back to Dashboard",
         "opportunities": "Opportunities"
@@ -440,6 +441,13 @@
         "confirmApprove": "Approve this contract?",
         "confirmReject": "Reject this contract?",
         "confirmSign": "Confirm contract is signed?",
+        "allContracts": "All Contracts",
+        "salesContracts": "Sales Contracts",
+        "procurementContracts": "Procurement Contracts",
+        "newProcurement": "New Procurement Contract",
+        "type": "Type",
+        "sales": "Sales",
+        "procurement": "Procurement",
         "tabs": {
             "overview": "Overview",
             "risk": "Risk & Approval",

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Architecture & Relationships (系统架构与关联关系)</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f6f8fa;
+        }
+        h1, h2, h3 { color: #24292e; }
+        h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; }
+        h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 8px; margin-top: 40px; }
+        .mermaid { background: white; padding: 20px; border-radius: 6px; margin: 20px 0; }
+        code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-family: 'Monaco', monospace; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; background: white; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f6f8fa; font-weight: 600; }
+        ul { line-height: 1.8; }
+        blockquote { border-left: 4px solid #0969da; padding-left: 16px; color: #57606a; margin: 16px 0; }
+    </style>
+</head>
+<body>
+    <h1>System Architecture & Relationships (系统架构与关联关系)</h1>
+    
+    <p>本系统采用经典的 Lead-to-Cash (L2C) 业务流。本文档通过可视化图表和数据字典，揭示各模块间的深层关联。</p>
+
+    <h2>1. 核心业务流转关系 (Core Business Flow)</h2>
+
+    <h3>实体关系图 (Entity Relationship Diagram)</h3>
+
+    <div class="mermaid">
+graph TD
+    %% Core Business Flow
+    A[Customer] -->|initiates| B[Opportunity]
+    B -->|converts to| C[Contract]
+    C -->|initializes| D[Project]
+    
+    %% Finance Flow
+    C -->|defines payments| E[Milestone]
+    E -->|triggers| F[Invoice]
+    F -->|collects| G[Payment]
+    
+    %% Execution Flow
+    D -->|uses| H[Resource Allocation]
+    D -->|incurs cost| I[Fund Transaction]
+    
+    %% Master Data
+    J[User] -->|assigned to| H
+    K[Vendor] -->|payee| I
+
+    %% Styles
+    style A fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    style B fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style C fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style D fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style E fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style F fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style G fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style H fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    style I fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    style J fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style K fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    </div>
+
+    <h3>关键流转逻辑 (Key Transition Logic)</h3>
+
+    <ol>
+        <li><strong>商机 -> 合同 (Opp to Contract)</strong>
+            <ul>
+                <li><strong>触发点</strong>: 商机状态变更为 <code>Won</code>。</li>
+                <li><strong>数据继承</strong>: 合同自动继承商机的 <code>Customer</code>, <code>Title</code>, <code>WinningPrice</code>。</li>
+            </ul>
+        </li>
+        <li><strong>合同 -> 项目 (Contract to Project)</strong>
+            <ul>
+                <li><strong>触发点</strong>: 合同状态变更为 <code>Signed</code> -> 点击 "Initialize Project"。</li>
+                <li><strong>数据继承</strong>: 项目继承合同的 <code>ContractNumber</code> 作为关联键，初始状态为 <code>Initialization</code>。</li>
+            </ul>
+        </li>
+        <li><strong>合同 -> 财务 (Contract to Finance)</strong>
+            <ul>
+                <li><strong>桥梁</strong>: <code>Milestones</code> (里程碑)。</li>
+                <li><strong>逻辑</strong>: 合同中定义"付款节点"（如：首付款 30%）。当项目交付达到该里程碑时，财务模块基于此里程碑生成 <code>Invoice</code>。</li>
+            </ul>
+        </li>
+    </ol>
+
+    <hr>
+
+    <h2>2. 数据字典与配置 (Data Dictionary & Settings)</h2>
+
+    <h3>基础配置 (Master Data)</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>实体</th>
+                <th>模块位置</th>
+                <th>用途</th>
+                <th>关联模块</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Customer</strong></td>
+                <td><code>/customers</code></td>
+                <td>客户档案，包含联系人、行业、账期偏好。</td>
+                <td>Opportunity, Contract, Invoice</td>
+            </tr>
+            <tr>
+                <td><strong>User</strong></td>
+                <td><code>/users</code></td>
+                <td>内部员工账号，包含角色 (Admin/User) 和职位。</td>
+                <td>Project (Resource), Opportunity (Owner)</td>
+            </tr>
+            <tr>
+                <td><strong>Vendor</strong></td>
+                <td><code>/vendors</code></td>
+                <td>供应商/合作伙伴，包含评级、品牌、服务类型。</td>
+                <td>Project (Cost), Fund (Payout)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>核心枚举值 (Key Enums)</h3>
+
+    <p><strong>1. 商机阶段 (Sale Stage)</strong></p>
+    <ul>
+        <li><code>Prospecting</code>: 潜在客户</li>
+        <li><code>Qualification</code>: 资格确认</li>
+        <li><code>Proposal</code>: 方案报价</li>
+        <li><code>Negotiation</code>: 商务谈判</li>
+        <li><code>Closed Won/Lost</code>: 赢单/输单</li>
+    </ul>
+
+    <p><strong>2. 合同状态 (Contract Status)</strong></p>
+    <ul>
+        <li><code>Draft</code>: 草稿</li>
+        <li><code>CustomerReview</code>: 客户评审</li>
+        <li><code>InternalReview</code>: 内部评审</li>
+        <li><code>CustomerSeal</code>: 客户盖章</li>
+        <li><code>InternalSeal</code>: 公司盖章</li>
+        <li><code>Signed</code>: 已归档</li>
+    </ul>
+
+    <p><strong>3. 项目状态 (Project Status)</strong></p>
+    <ul>
+        <li><code>Initialization</code>: 初始化</li>
+        <li><code>Planning</code>: 计划中</li>
+        <li><code>Execution</code>: 执行中</li>
+        <li><code>Delivery</code>: 交付/验收</li>
+        <li><code>Completed</code>: 已完结</li>
+    </ul>
+
+    <p><strong>4. 资金交易类型 (Fund Transaction Type)</strong></p>
+    <ul>
+        <li><code>ADVANCE</code>: 垫资 (公司出钱)</li>
+        <li><code>REIMBURSEMENT</code>: 报销 (员工报销)</li>
+        <li><code>PAYOUT</code>: 付款 (付给 Vendor)</li>
+        <li><code>COLLECTION</code>: 回款 (客户付款)</li>
+    </ul>
+
+    <hr>
+
+    <h2>3. 全局提示词建议 (System-Wide Prompting)</h2>
+
+    <p>如果您需要让 AI 理解整个系统的上下文，可以将以下内容作为 <code>System Prompt</code> 或开场白：</p>
+
+    <blockquote>
+        <p>"你正在维护一个名为 <strong>Lead-to-Cash (L2C)</strong> 的全流程业务系统。该系统基于 <strong>Next.js + NestJS</strong> 开发。</p>
+        <p><strong>核心业务链</strong>：</p>
+        <ol>
+            <li><strong>商机 (Opportunity)</strong>：销售漏斗的入口。</li>
+            <li><strong>合同 (Contract)</strong>：确立法律和财务边界，定义 <strong>里程碑 (Milestones)</strong>。</li>
+            <li><strong>交付 (Project)</strong>：履行合同义务，产生 <strong>成本 (Cost)</strong>。</li>
+            <li><strong>财务 (Finance)</strong>：基于里程碑开具 <strong>发票 (Invoice)</strong> 并回笼资金。</li>
+        </ol>
+        <p><strong>关键原则</strong>：</p>
+        <ul>
+            <li><strong>数据一致性</strong>：<code>Won Price</code> 在合同和项目中必须保持一致。</li>
+            <li><strong>状态驱动</strong>：所有核心实体的流转都由 Status 驱动（如 Signed 触发 Project 创建）。"</li>
+        </ul>
+    </blockquote>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>

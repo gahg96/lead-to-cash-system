@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
+import { CreateProcurementContractDto } from './dto/create-procurement-contract.dto';
 import { ContractStatus, LineItemType, MilestoneStatus } from '@prisma/client';
 
 @Injectable()
@@ -156,8 +157,30 @@ export class ContractsService {
                 opportunity: {
                     include: { customer: true }
                 },
+                vendor: true,  // For procurement contracts
+                endCustomer: true,  // For procurement contracts
+                relatedSalesContract: {  // For procurement contracts
+                    include: {
+                        opportunity: {
+                            include: {
+                                customer: true,
+                            },
+                        },
+                    },
+                },
+                linkedProcurementContracts: {  // For sales contracts - get linked procurement contracts
+                    include: {
+                        vendor: true,
+                        endCustomer: true,
+                    },
+                },
                 drafter: true,
                 approver: true,
+                invoices: {
+                    include: {
+                        payments: true
+                    }
+                }
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -168,6 +191,23 @@ export class ContractsService {
             where: { id },
             include: {
                 opportunity: { include: { customer: true } },
+                vendor: true,  // For procurement contracts
+                endCustomer: true,  // For procurement contracts
+                relatedSalesContract: {  // For procurement contracts
+                    include: {
+                        opportunity: {
+                            include: {
+                                customer: true,
+                            },
+                        },
+                    },
+                },
+                linkedProcurementContracts: { // For sales contracts
+                    include: {
+                        vendor: true,
+                        endCustomer: true,
+                    }
+                },
                 milestones: { orderBy: { createdAt: 'asc' } },
                 documents: { include: { uploadedBy: true }, orderBy: { createdAt: 'desc' } },
                 lineItems: { orderBy: { sortOrder: 'asc' } },
@@ -335,11 +375,51 @@ export class ContractsService {
         });
 
         if (!milestone) {
-            throw new Error('Milestone not found');
+            throw new BadRequestException('Milestone not found');
         }
 
-        const updateData = { ...data };
-        const newAmount = updateData.amount ? parseFloat(updateData.amount) : Number(milestone.amount);
+        // Sanitize update data to include only allowed fields
+        const allowedFields = ['name', 'amount', 'dueDate', 'status'];
+        const updateData: any = {};
+
+        for (const field of allowedFields) {
+            // Check strictly for undefined, allowing null or empty string to pass through for processing
+            if (data[field] !== undefined) {
+                updateData[field] = data[field];
+            }
+        }
+
+        // Handle Amount: if valid number string, parse it; otherwise maintain original
+        let newAmount = Number(milestone.amount);
+        if (updateData.amount !== undefined && updateData.amount !== '' && updateData.amount !== null && !isNaN(Number(updateData.amount))) {
+            newAmount = Number(updateData.amount);
+            updateData.amount = newAmount;
+        } else if (updateData.amount === '' || updateData.amount === null) {
+            // If explicitly cleared, we should probably keep old value or throw error?
+            // Schema requires Amount. Let's keep old value to be safe and avoid 500.
+            updateData.amount = newAmount;
+        } else {
+            // If updateData.amount was undefined, we don't include it in updateData,
+            // but we need newAmount for total calculation.
+            // (Logic handled by newAmount init)
+            // Clean up if it was present but invalid
+            delete updateData.amount;
+        }
+
+        // Handle DueDate: empty string -> null
+        if (updateData.dueDate !== undefined) {
+            if (updateData.dueDate === '' || updateData.dueDate === null) {
+                updateData.dueDate = null;
+            } else {
+                const d = new Date(updateData.dueDate);
+                if (!isNaN(d.getTime())) {
+                    updateData.dueDate = d;
+                } else {
+                    // Invalid date, ignore update or throw? Let's ignore to avoid crash
+                    delete updateData.dueDate;
+                }
+            }
+        }
 
         // Calculate total milestone amount with the updated value
         const totalWithoutCurrent = milestone.contract.milestones
@@ -348,22 +428,19 @@ export class ContractsService {
         const newTotal = totalWithoutCurrent + newAmount;
 
         // Validate total doesn't exceed contract value
-        if (newTotal > Number(milestone.contract.totalContractValue)) {
-            throw new Error(
-                `里程碑总金额 (¥${newTotal.toLocaleString()}) 超过合同金额 (¥${Number(milestone.contract.totalContractValue).toLocaleString()})`
+        const contractLimit = Number(milestone.contract.wonPrice) || Number(milestone.contract.totalContractValue);
+
+        if (newTotal > contractLimit) {
+            throw new BadRequestException(
+                `里程碑总金额 (¥${newTotal.toLocaleString()}) 超过合同金额 (¥${contractLimit.toLocaleString()})`
             );
         }
 
-        if (updateData.amount) {
-            updateData.amount = newAmount;
-        }
-        if (updateData.dueDate && typeof updateData.dueDate === 'string') {
-            updateData.dueDate = new Date(updateData.dueDate);
-        }
-        return this.prisma.milestone.update({
+        const result = await this.prisma.milestone.update({
             where: { id },
             data: updateData,
         });
+        return result;
     }
 
     async deleteMilestone(id: string) {
@@ -407,5 +484,59 @@ export class ContractsService {
             });
         });
     }
-}
 
+    // Procurement Contract Methods
+    async createProcurementContract(dto: CreateProcurementContractDto, userId: string) {
+        return this.prisma.contract.create({
+            data: {
+                contractNumber: dto.contractNumber,
+                contractType: 'PROCUREMENT',
+                vendorId: dto.vendorId,
+                procurementCategory: dto.procurementCategory,
+                relatedSalesContractId: dto.relatedSalesContractId,
+                endCustomerId: dto.endCustomerId,  // 最终客户
+                totalContractValue: dto.totalContractValue,
+                startDate: dto.startDate ? new Date(dto.startDate) : null,
+                endDate: dto.endDate ? new Date(dto.endDate) : null,
+                paymentTerms: dto.paymentTerms,
+                scope: dto.description,
+                status: 'Draft',
+                drafterId: userId,
+            },
+            include: {
+                vendor: true,
+                endCustomer: true,  // Include end customer in response
+                relatedSalesContract: {
+                    include: {
+                        opportunity: {
+                            include: {
+                                customer: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    async findByType(contractType: string) {
+        return this.prisma.contract.findMany({
+            where: {
+                contractType: contractType as any,
+            },
+            include: {
+                opportunity: {
+                    include: {
+                        customer: true,
+                    },
+                },
+                vendor: true,
+                relatedSalesContract: true,
+                milestones: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+    }
+}

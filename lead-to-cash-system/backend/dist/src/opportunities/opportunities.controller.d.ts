@@ -130,9 +130,14 @@ export declare class OpportunitiesController {
             createdAt: Date;
             status: import("@prisma/client").$Enums.ContractStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
-            opportunityId: string;
+            opportunityId: string | null;
             wonPrice: import("@prisma/client/runtime/library").Decimal | null;
             contractNumber: string;
+            contractType: import("@prisma/client").$Enums.ContractType;
+            vendorId: string | null;
+            procurementCategory: import("@prisma/client").$Enums.ProcurementCategory | null;
+            relatedSalesContractId: string | null;
+            endCustomerId: string | null;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;

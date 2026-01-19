@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useRouter, useParams } from 'next/navigation';
 import { Loader2, ArrowLeft, CheckCircle, XCircle, FileText, AlertTriangle, Pencil } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from 'next/link';
 import { useI18n } from "@/lib/i18n/I18nContext";
@@ -114,9 +115,9 @@ export default function ContractDetailPage() {
             toast.success(t("common.saved"));
             setShowStatusDialog(false);
             fetchContract();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast.error(t("common.error"));
+            toast.error(error.message || t("common.error"));
         }
     };
 
@@ -142,15 +143,27 @@ export default function ContractDetailPage() {
         }
     };
 
-    const handleSaveRisk = async () => {
+    // Auto-save Risk Text
+    useEffect(() => {
+        if (!contract || riskText === (contract.riskAssessment || '')) return;
+
+        const timer = setTimeout(() => {
+            handleSaveRisk(true);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, [riskText]);
+
+    const handleSaveRisk = async (silent = false) => {
         setIsSaving(true);
         try {
             await api.patch(`/contracts/${id}`, { riskAssessment: riskText });
-            toast.success(t("common.saved"));
-            fetchContract();
-        } catch (e) {
+            if (!silent) toast.success(t("common.saved"));
+            // Update local contract state to prevent auto-save loop
+            setContract(prev => prev ? { ...prev, riskAssessment: riskText } : null);
+        } catch (e: any) {
             console.error(e);
-            toast.error(t("common.error"));
+            if (!silent) toast.error(e.message || t("common.error"));
         } finally {
             setIsSaving(false);
         }
@@ -184,9 +197,9 @@ export default function ContractDetailPage() {
             setIsEditing(false);
             toast.success(t("common.saved"));
             fetchContract();
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            toast.error(t("common.error"));
+            toast.error(e.message || t("common.error"));
         }
         finally { setIsSaving(false); }
     };
@@ -215,7 +228,10 @@ export default function ContractDetailPage() {
             setNewMilestone({ name: '', amount: '', dueDate: '' });
             setShowMilestoneInput(false);
             fetchContract();
-        } catch (e) { console.error(e); }
+        } catch (e: any) {
+            console.error(e);
+            toast.error(e.message || t("common.error"));
+        }
     };
 
     const handleDeleteMilestone = async (mid: string) => {
@@ -236,24 +252,13 @@ export default function ContractDetailPage() {
             setEditingMilestoneId(null);
             fetchContract();
             toast.success(t("common.saved"));
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            toast.error(t("common.error"));
+            toast.error(e.message || t("common.error"));
         }
     };
 
-    // Workflow Actions
-    const handleAction = async (action: string, confirmMsg: string) => {
-        if (!confirm(confirmMsg)) return;
-        try {
-            await api.post(`/contracts/${id}/${action}`, {});
-            toast.success(t("common.saved"));
-            fetchContract();
-        } catch (e) {
-            console.error(e);
-            toast.error(t("common.error"));
-        }
-    };
+
 
     const handleInitializeProject = async () => {
         try {
@@ -285,46 +290,7 @@ export default function ContractDetailPage() {
     const isDraft = status === 'Draft';
     // Workflow: Draft -> CustomerReview -> InternalReview -> CustomerSeal -> InternalSeal -> Signed
 
-    const getWorkflowActions = () => {
-        return (
-            <>
-                {isDraft && (
-                    <Button onClick={() => handleAction('submit-customer', 'Submit for Customer Review?')} className="bg-emerald-600 hover:bg-emerald-700">
-                        提交客户审核
-                    </Button>
-                )}
-                {status === 'CustomerReview' && (
-                    <Button onClick={() => handleAction('pass-customer', 'Customer Review Passed?')} className="bg-emerald-600 hover:bg-emerald-700">
-                        客户审核通过
-                    </Button>
-                )}
-                {status === 'InternalReview' && (
-                    <Button onClick={() => handleAction('pass-internal', 'Internal Review Passed?')} className="bg-emerald-600 hover:bg-emerald-700">
-                        我方审核通过
-                    </Button>
-                )}
-                {status === 'CustomerSeal' && (
-                    <Button onClick={() => handleAction('customer-seal', 'Customer Has Sealed?')} className="bg-purple-600 hover:bg-purple-700">
-                        客户已盖章
-                    </Button>
-                )}
-                {status === 'InternalSeal' && (
-                    <Button onClick={() => handleAction('internal-seal', 'Internal Seal Completed / Sign Off?')} className="bg-green-600 hover:bg-green-700">
-                        我方盖章/签订完成
-                    </Button>
-                )}
 
-                {status === 'Signed' && !(contract as any).project && (
-                    <Button onClick={handleInitializeProject} className="bg-orange-600 hover:bg-orange-700">{t("project.actions.initialize")}</Button>
-                )}
-                {status === 'Signed' && (contract as any).project && (
-                    <Link href={`/delivery/${(contract as any).project.id}`}>
-                        <Button variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50">View Project</Button>
-                    </Link>
-                )}
-            </>
-        );
-    };
 
 
 
@@ -369,11 +335,23 @@ export default function ContractDetailPage() {
                             </div>
                         </h1>
                         <p className="text-slate-500 mt-1">
-                            {contract.opportunity.customer.companyName} - {contract.opportunity.title}
+                            {contract.opportunity
+                                ? `${contract.opportunity.customer.companyName} - ${contract.opportunity.title}`
+                                : (contract as any).vendor
+                                    ? `${(contract as any).vendor.name} - ${(contract as any).procurementCategory || 'Procurement'}`
+                                    : 'N/A'
+                            }
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        {getWorkflowActions()}
+                        {contract.status === 'Signed' && !(contract as any).project && (
+                            <Button onClick={handleInitializeProject} className="bg-orange-600 hover:bg-orange-700">{t("project.actions.initialize")}</Button>
+                        )}
+                        {contract.status === 'Signed' && (contract as any).project && (
+                            <Link href={`/delivery/${(contract as any).project.id}`}>
+                                <Button variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50">View Project</Button>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>
@@ -385,6 +363,10 @@ export default function ContractDetailPage() {
                     <TabsTrigger value="overview">{t("contract.tabs.overview")}</TabsTrigger>
                     <TabsTrigger value="risk">{t("contract.tabs.risk")}</TabsTrigger>
                     <TabsTrigger value="milestones">{t("contract.tabs.milestones")}</TabsTrigger>
+                    {/* Add Linked Contracts Tab for Sales Contracts */}
+                    {(contract as any).contractType === 'SALES' && (
+                        <TabsTrigger value="linked-contracts">关联采购合同</TabsTrigger>
+                    )}
                     <TabsTrigger value="documents">{t("contract.documents.tab")}</TabsTrigger>
                 </TabsList>
 
@@ -470,9 +452,60 @@ export default function ContractDetailPage() {
                                             </div>
                                         </div>
 
+                                        {/* End Customer for Procurement Contracts */}
+                                        {(contract as any).contractType === 'PROCUREMENT' && (
+                                            <>
+                                                {/* Related Sales Contract */}
+                                                {(contract as any).relatedSalesContract && (
+                                                    <div className="border-t pt-4">
+                                                        <h4 className="font-semibold mb-3">关联销售合同</h4>
+                                                        <div className="text-sm space-y-2">
+                                                            <div>
+                                                                <span className="text-slate-500">合同编号：</span>
+                                                                <span className="font-medium ml-2">
+                                                                    {(contract as any).relatedSalesContract.contractNumber}
+                                                                </span>
+                                                            </div>
+                                                            {(contract as any).relatedSalesContract.opportunity && (
+                                                                <div>
+                                                                    <span className="text-slate-500">客户：</span>
+                                                                    <span className="font-medium ml-2">
+                                                                        {(contract as any).relatedSalesContract.opportunity.customer.companyName}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* End Customer */}
+                                                <div className="border-t pt-4">
+                                                    <h4 className="font-semibold mb-3">最终客户</h4>
+                                                    <div className="text-sm">
+                                                        {(contract as any).endCustomer ? (
+                                                            <div className="font-medium">
+                                                                {(contract as any).endCustomer.companyName}
+                                                            </div>
+                                                        ) : (contract as any).relatedSalesContract?.opportunity?.customer ? (
+                                                            <div className="font-medium text-blue-600">
+                                                                {(contract as any).relatedSalesContract.opportunity.customer.companyName}
+                                                                <span className="text-xs text-slate-500 ml-2">(继承自关联合同)</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-slate-400">
+                                                                未设置
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
                                         <div className="border-t pt-4">
                                             <div className="flex justify-between items-center mb-3">
-                                                <h4 className="font-semibold">收款信息</h4>
+                                                <h4 className="font-semibold">
+                                                    {(contract as any).contractType === 'PROCUREMENT' ? '付款账户' : '收款信息'}
+                                                </h4>
                                                 {paymentAccounts.length > 0 ? (
                                                     <div className="w-[300px]">
                                                         <Select onValueChange={(value) => {
@@ -525,7 +558,10 @@ export default function ContractDetailPage() {
                                                     </div>
                                                 ) : (
                                                     <div className="text-center text-slate-400 py-2">
-                                                        暂无收款信息，请从上方选择账户
+                                                        {(contract as any).contractType === 'PROCUREMENT'
+                                                            ? '暂无付款账户信息，请从上方选择账户'
+                                                            : '暂无收款信息，请从上方选择账户'
+                                                        }
                                                     </div>
                                                 )}
                                             </div>
@@ -575,7 +611,15 @@ export default function ContractDetailPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                        {/* Save Button Removed from here */}
+                                        <div className="flex justify-end gap-2 pt-4 border-t">
+                                            <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                                                {t("contract.fields.cancel")}
+                                            </Button>
+                                            <Button onClick={handleGlobalSave} disabled={isSaving}>
+                                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                {t("common.save")}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -758,23 +802,65 @@ export default function ContractDetailPage() {
                                             </div>
                                             {contract.startDate && (
                                                 <div>
-                                                    <Label>合同开始日期</Label>
+                                                    <Label>合同有效期 - 开始日期</Label>
                                                     <div>{new Date(contract.startDate).toLocaleDateString()}</div>
                                                 </div>
                                             )}
                                             {contract.endDate && (
                                                 <div>
-                                                    <Label>合同结束日期</Label>
+                                                    <Label>合同有效期 - 结束日期</Label>
                                                     <div>{new Date(contract.endDate).toLocaleDateString()}</div>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
+                                    {/* Related Sales Contract for Procurement (Read-only) */}
+                                    {(contract as any).contractType === 'PROCUREMENT' && (contract as any).relatedSalesContract && (
+                                        <div className="pb-4 border-b">
+                                            <Label className="text-base font-semibold mb-3 block">关联销售合同</Label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label className="text-xs text-slate-500">合同编号</Label>
+                                                    <div>{(contract as any).relatedSalesContract.contractNumber}</div>
+                                                </div>
+                                                {(contract as any).relatedSalesContract.opportunity?.customer && (
+                                                    <div>
+                                                        <Label className="text-xs text-slate-500">客户</Label>
+                                                        <div>{(contract as any).relatedSalesContract.opportunity.customer.companyName}</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* End Customer for Procurement (Read-only) */}
+                                    {(contract as any).contractType === 'PROCUREMENT' && (
+                                        <div className="pb-4 border-b">
+                                            <Label className="text-base font-semibold mb-3 block">最终客户</Label>
+                                            <div>
+                                                {(contract as any).endCustomer ? (
+                                                    <div className="font-medium">
+                                                        {(contract as any).endCustomer.companyName}
+                                                    </div>
+                                                ) : (contract as any).relatedSalesContract?.opportunity?.customer ? (
+                                                    <div className="font-medium text-blue-600">
+                                                        {(contract as any).relatedSalesContract.opportunity.customer.companyName}
+                                                        <span className="text-xs text-slate-500 ml-2">(继承自关联合同)</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-slate-400">未设置</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Payment Information */}
                                     {(contract.paymentAccount || contract.bankName) && (
                                         <div className="pb-4 border-b">
-                                            <Label className="text-base font-semibold mb-3 block">收款信息</Label>
+                                            <Label className="text-base font-semibold mb-3 block">
+                                                {(contract as any).contractType === 'PROCUREMENT' ? '付款账户' : '收款信息'}
+                                            </Label>
                                             <div className="grid grid-cols-2 gap-4">
                                                 {contract.accountName && (
                                                     <div>
@@ -875,7 +961,15 @@ export default function ContractDetailPage() {
                                 className="min-h-[150px]"
                                 disabled={contract.status === 'Signed'}
                             />
-                            {/* Individual save button removed in favor of global save */}
+                            <div className="flex justify-between items-center text-sm text-slate-500">
+                                <div>
+                                    {isSaving ? "Saving..." : contract.riskAssessment === riskText ? "All changes saved" : "Unsaved changes"}
+                                </div>
+                                <Button onClick={() => handleSaveRisk(false)} disabled={isSaving || contract.status === 'Signed'}>
+                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    {t("common.save")}
+                                </Button>
+                            </div>
 
                             {!isDraft && contract.approver && (
                                 <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded text-green-800 flex items-center gap-2">
@@ -1039,6 +1133,63 @@ export default function ContractDetailPage() {
                                     <div className="text-center text-slate-500 py-8">{t("contract.documents.empty")}</div>
                                 )}
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Linked Procurement Contracts Tab Content */}
+                <TabsContent value="linked-contracts">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>关联采购合同</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {!(contract as any).linkedProcurementContracts || (contract as any).linkedProcurementContracts.length === 0 ? (
+                                <div className="text-center py-8 text-slate-500">
+                                    暂无关联的采购合同
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>合同编号</TableHead>
+                                            <TableHead>供应商</TableHead>
+                                            <TableHead>最终客户</TableHead>
+                                            <TableHead>金额</TableHead>
+                                            <TableHead>状态</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {(contract as any).linkedProcurementContracts.map((linkedContract: any) => (
+                                            <TableRow
+                                                key={linkedContract.id}
+                                                className="cursor-pointer hover:bg-slate-50"
+                                                onClick={() => router.push(`/contracts/${linkedContract.id}`)}
+                                            >
+                                                <TableCell className="font-medium font-mono">
+                                                    {linkedContract.contractNumber}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {linkedContract.vendor?.name || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {linkedContract.endCustomer?.companyName || (
+                                                        <span className="text-slate-400">继承自关联合同</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY' }).format(linkedContract.wonPrice || linkedContract.totalContractValue || 0)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">
+                                                        {t(`contract.status.${linkedContract.status}`)}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>

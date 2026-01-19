@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import { Loader2 } from 'lucide-react';
+import { ChatWidget } from '../ai/ChatWidget';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -26,6 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <main className="flex-1 ml-64 overflow-y-auto">
                 {children}
             </main>
+            <ChatWidget />
         </div>
     );
 }

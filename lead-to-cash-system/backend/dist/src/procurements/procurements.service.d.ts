@@ -63,10 +63,10 @@ export declare class ProcurementsService {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
     } & {
         id: string;
@@ -150,10 +150,10 @@ export declare class ProcurementsService {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
     } & {
         id: string;
@@ -237,10 +237,10 @@ export declare class ProcurementsService {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
         lineItems: {
             id: string;
@@ -334,10 +334,10 @@ export declare class ProcurementsService {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
         lineItems: {
             id: string;
@@ -431,10 +431,10 @@ export declare class ProcurementsService {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
         lineItems: {
             id: string;
@@ -551,10 +551,10 @@ export declare class ProcurementsService {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
     } & {
         id: string;
@@ -585,10 +585,10 @@ export declare class ProcurementsService {
         name: string;
         sortOrder: number;
         procurementId: string;
+        documentId: string | null;
         category: string;
         isCompleted: boolean;
         assignee: string | null;
-        documentId: string | null;
     }>;
     addDocument(procurementId: string, doc: {
         docType: string;

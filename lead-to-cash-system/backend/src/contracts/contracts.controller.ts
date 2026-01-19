@@ -5,6 +5,7 @@ import { extname } from 'path';
 import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
+import { CreateProcurementContractDto } from './dto/create-procurement-contract.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ContractStatus } from '@prisma/client';
 
@@ -138,6 +139,20 @@ export class ContractsController {
     @Delete('milestones/:mid')
     deleteMilestone(@Param('mid') mid: string) {
         return this.contractsService.deleteMilestone(mid);
+    }
+
+    // Procurement Contract Endpoints
+    @Post('procurement')
+    async createProcurementContract(
+        @Body() dto: CreateProcurementContractDto,
+        @Request() req
+    ) {
+        return this.contractsService.createProcurementContract(dto, req.user.userId);
+    }
+
+    @Get('procurement/list')
+    async getProcurementContracts() {
+        return this.contractsService.findByType('PROCUREMENT');
     }
 }
 

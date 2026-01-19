@@ -1,5 +1,5 @@
 import { IsString, IsNumber, IsEnum, IsOptional, IsDateString } from 'class-validator';
-import { InvoiceType } from '@prisma/client';
+import { InvoiceType, InvoiceDirection } from '@prisma/client';
 
 export class CreateInvoiceDto {
     @IsString()
@@ -32,4 +32,17 @@ export class CreateInvoiceDto {
     @IsOptional()
     @IsString()
     remarks?: string;
+
+    // Procurement Invoice Fields
+    @IsOptional()
+    @IsEnum(InvoiceDirection)
+    direction?: InvoiceDirection;
+
+    @IsOptional()
+    @IsString()
+    vendorInvoiceNumber?: string;
+
+    @IsOptional()
+    @IsDateString()
+    receivedDate?: string;
 }

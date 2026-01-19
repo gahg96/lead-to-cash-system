@@ -22,6 +22,9 @@ class CreateInvoiceDto {
     type;
     description;
     remarks;
+    direction;
+    vendorInvoiceNumber;
+    receivedDate;
 }
 exports.CreateInvoiceDto = CreateInvoiceDto;
 __decorate([
@@ -64,4 +67,19 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateInvoiceDto.prototype, "remarks", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.InvoiceDirection),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "direction", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "vendorInvoiceNumber", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "receivedDate", void 0);
 //# sourceMappingURL=create-invoice.dto.js.map

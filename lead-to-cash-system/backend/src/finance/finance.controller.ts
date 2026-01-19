@@ -227,4 +227,8 @@ export class FinanceController {
             filename: decodedFilename,
         });
     }
+    @Post('sync-transactions')
+    syncTransactions() {
+        return this.financeService.syncTransactions();
+    }
 }

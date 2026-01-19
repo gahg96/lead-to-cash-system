@@ -1,4 +1,4 @@
-import { InvoiceType } from '@prisma/client';
+import { InvoiceType, InvoiceDirection } from '@prisma/client';
 export declare class CreateInvoiceDto {
     contractId: string;
     projectId?: string;
@@ -9,4 +9,7 @@ export declare class CreateInvoiceDto {
     type: InvoiceType;
     description?: string;
     remarks?: string;
+    direction?: InvoiceDirection;
+    vendorInvoiceNumber?: string;
+    receivedDate?: string;
 }

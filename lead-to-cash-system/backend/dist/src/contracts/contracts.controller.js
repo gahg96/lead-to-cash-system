@@ -20,6 +20,7 @@ const path_1 = require("path");
 const contracts_service_1 = require("./contracts.service");
 const create_contract_dto_1 = require("./dto/create-contract.dto");
 const update_contract_dto_1 = require("./dto/update-contract.dto");
+const create_procurement_contract_dto_1 = require("./dto/create-procurement-contract.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const client_1 = require("@prisma/client");
 let ContractsController = class ContractsController {
@@ -97,6 +98,12 @@ let ContractsController = class ContractsController {
     }
     deleteMilestone(mid) {
         return this.contractsService.deleteMilestone(mid);
+    }
+    async createProcurementContract(dto, req) {
+        return this.contractsService.createProcurementContract(dto, req.user.userId);
+    }
+    async getProcurementContracts() {
+        return this.contractsService.findByType('PROCUREMENT');
     }
 };
 exports.ContractsController = ContractsController;
@@ -227,6 +234,20 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ContractsController.prototype, "deleteMilestone", null);
+__decorate([
+    (0, common_1.Post)('procurement'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [create_procurement_contract_dto_1.CreateProcurementContractDto, Object]),
+    __metadata("design:returntype", Promise)
+], ContractsController.prototype, "createProcurementContract", null);
+__decorate([
+    (0, common_1.Get)('procurement/list'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ContractsController.prototype, "getProcurementContracts", null);
 exports.ContractsController = ContractsController = __decorate([
     (0, common_1.Controller)('contracts'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

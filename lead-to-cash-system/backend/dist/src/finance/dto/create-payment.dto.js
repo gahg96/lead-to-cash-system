@@ -20,6 +20,9 @@ class CreatePaymentDto {
     bankName;
     transactionRef;
     remarks;
+    paymentType;
+    fromAccount;
+    toAccount;
 }
 exports.CreatePaymentDto = CreatePaymentDto;
 __decorate([
@@ -53,4 +56,19 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreatePaymentDto.prototype, "remarks", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.PaymentType),
+    __metadata("design:type", String)
+], CreatePaymentDto.prototype, "paymentType", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreatePaymentDto.prototype, "fromAccount", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreatePaymentDto.prototype, "toAccount", void 0);
 //# sourceMappingURL=create-payment.dto.js.map

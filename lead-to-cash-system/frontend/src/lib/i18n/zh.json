@@ -6,7 +6,11 @@
         "cashInBank": "账户资金",
         "readyToInvoice": "待开票",
         "pipelineValue": "潜在商机总额",
-        "activeProjects": "商机",
+        "activeProjects": "活跃项目",
+        "charts": {
+            "projectStatus": "项目状态分布",
+            "projectMargins": "项目利润率排行"
+        },
         "projDesc": "潜在商机跟进情况。",
         "milestoneWatch": "里程碑监控",
         "milestoneDesc": "即将到来的交付和收款事件。",
@@ -119,6 +123,7 @@
         "contracts": "合同管理",
         "delivery": "项目交付",
         "finance": "财务管理",
+        "invoices": "发票管理",
         "logout": "退出登录",
         "back": "返回仪表盘"
     },
@@ -302,9 +307,11 @@
             "communication": "沟通计划",
             "risks": "风险跟踪",
             "profit": "利润分析",
-            "funds": "资金管理"
+            "funds": "资金管理",
+            "financial": "项目财务运营"
         },
         "fields": {
+            "resources": "资源投入",
             "financials": "项目财务",
             "budget": "预估成本",
             "margin": "目标利润率 (%)",
@@ -473,6 +480,29 @@
         "confirmApprove": "确认批准该合同？",
         "confirmReject": "确认驳回该合同？",
         "confirmSign": "确认该合同已签署？",
+        "allContracts": "所有合同",
+        "salesContracts": "销售合同",
+        "procurementContracts": "采购合同",
+        "newProcurement": "新建采购合同",
+        "type": "类型",
+        "sales": "销售",
+        "procurement": "采购",
+        "contractInfo": "合同信息",
+        "number": "合同编号",
+        "category": "类别",
+        "relatedSalesContract": "关联销售合同",
+        "forSubcontracting": "用于分包",
+        "startDate": "开始日期",
+        "endDate": "结束日期",
+        "paymentTerms": "付款条款",
+        "scope": "工作范围",
+        "sla": "服务等级协议",
+        "liability": "责任条款",
+        "createProcurement": "创建采购合同",
+        "endCustomer": "最终客户",
+        "defaultCompany": "默认为公司自己",
+        "selectEndCustomer": "选择最终客户（可选）",
+        "companyItself": "上海正奇信息科技有限公司（默认）",
         "tabs": {
             "overview": "概览",
             "risk": "风险与审批",
@@ -488,10 +518,6 @@
             "processedBy": "处理人",
             "rejectedBy": "驳回人"
         },
-        "scope": "交付范围",
-        "sla": "服务等级协议",
-        "liability": "责任与质保",
-        "paymentTerms": "付款条款",
         "actions": {
             "manageStatus": "管理合同状态",
             "manageStatusDesc": "强制修改合同状态。请注意，这可能会跳过必要的审批流程。",
@@ -594,13 +620,26 @@
         "won": "赢单",
         "lost": "输单"
     },
+    "vendor": {
+        "vendor": "供应商",
+        "selectVendor": "选择供应商"
+    },
     "common": {
         "back": "返回",
         "loading": "加载中...",
         "notDefined": "未定义",
         "saved": "已保存",
         "save": "保存",
+        "cancel": "取消",
         "error": "错误",
-        "filter": "筛选"
+        "filter": "筛选",
+        "actions": "操作",
+        "edit": "编辑",
+        "delete": "删除",
+        "confirm": "确认",
+        "optional": "可选",
+        "none": "无",
+        "creating": "创建中...",
+        "description": "描述"
     }
 }

@@ -32,6 +32,13 @@ export class ProjectsService {
                 },
                 resources: {
                     include: { user: true }
+                },
+                fundTransactions: {
+                    include: {
+                        collections: true,
+                        allocations: true,
+                        payouts: true,
+                    }
                 }
             },
             orderBy: { createdAt: 'desc' }
@@ -63,6 +70,11 @@ export class ProjectsService {
                     orderBy: { createdAt: 'desc' }
                 },
                 fundTransactions: {
+                    include: {
+                        collections: true,
+                        allocations: true,
+                        payouts: true,
+                    },
                     orderBy: { createdAt: 'desc' }
                 }
             }

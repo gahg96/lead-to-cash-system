@@ -63,10 +63,10 @@ export declare class ProcurementsController {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
     } & {
         id: string;
@@ -150,10 +150,10 @@ export declare class ProcurementsController {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
     } & {
         id: string;
@@ -237,10 +237,10 @@ export declare class ProcurementsController {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
     } & {
         id: string;
@@ -324,10 +324,10 @@ export declare class ProcurementsController {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
         lineItems: {
             id: string;
@@ -421,10 +421,10 @@ export declare class ProcurementsController {
             name: string;
             sortOrder: number;
             procurementId: string;
+            documentId: string | null;
             category: string;
             isCompleted: boolean;
             assignee: string | null;
-            documentId: string | null;
         }[];
         lineItems: {
             id: string;
@@ -491,10 +491,10 @@ export declare class ProcurementsController {
         name: string;
         sortOrder: number;
         procurementId: string;
+        documentId: string | null;
         category: string;
         isCompleted: boolean;
         assignee: string | null;
-        documentId: string | null;
     }>;
     uploadDocument(procurementId: string, file: Express.Multer.File, docType: string, req: any): Promise<{
         id: string;

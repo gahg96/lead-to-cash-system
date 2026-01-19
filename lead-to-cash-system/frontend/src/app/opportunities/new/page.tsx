@@ -36,10 +36,14 @@ export default function NewOpportunityPage() {
     const [vendors, setVendors] = useState<any[]>([]);
     const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
 
-    // Fetch customers and vendors on mount
+    // Users selection state
+    const [users, setUsers] = useState<any[]>([]);
+
+    // Fetch customers, vendors, and users on mount
     useEffect(() => {
         api.get("/customers").then(setCustomers).catch(console.error);
         api.get("/vendors").then(setVendors).catch(console.error);
+        api.get("/users").then(setUsers).catch(console.error);
     }, []);
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -578,7 +582,39 @@ export default function NewOpportunityPage() {
                                     </div>
                                     <div>
                                         <Label>{t("form.salesOwner")}</Label>
-                                        <Input {...form.register("salesOwner")} placeholder={t("form.placeholder.salesOwner")} />
+                                        <Select
+                                            value={form.watch("salesOwner")}
+                                            onValueChange={(v) => form.setValue("salesOwner", v)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="选择销售负责人" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {Object.entries(
+                                                    users.reduce((acc, user) => {
+                                                        const role = user.role || 'OTHER';
+                                                        if (!acc[role]) acc[role] = [];
+                                                        acc[role].push(user);
+                                                        return acc;
+                                                    }, {} as Record<string, any[]>)
+                                                ).map(([role, roleUsers]) => (
+                                                    <div key={role}>
+                                                        <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50">
+                                                            {role === 'SALES' ? '销售部' :
+                                                                role === 'PRE_SALES' ? '售前支持' :
+                                                                    role === 'MANAGER' ? '管理层' :
+                                                                        role === 'COMMERCIAL' ? '商务部' :
+                                                                            role === 'TECHNICAL' ? '技术部' : role}
+                                                        </div>
+                                                        {(roleUsers as any[]).map((u: any) => (
+                                                            <SelectItem key={u.id} value={u.displayName}>
+                                                                {u.displayName}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </div>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div>
                                         <Label>{t("form.deliveryModel")}</Label>

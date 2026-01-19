@@ -46,7 +46,18 @@ export function ContractAnalytics({ contracts, onFilterChange, activeFilters }: 
             }
         });
 
-        return { totalValue, signedValue, signingRate, topUser };
+        const totalCollected = contracts.reduce((sum, c) => {
+            if (!c.invoices) return sum;
+            const collected = c.invoices.reduce((invSum: number, inv: any) => {
+                const payments = inv.payments?.reduce((pSum: number, p: any) => pSum + Number(p.amount), 0) || 0;
+                return invSum + payments;
+            }, 0);
+            return sum + collected;
+        }, 0);
+
+        const totalOutstanding = signedValue - totalCollected;
+
+        return { totalValue, signedValue, signingRate, topUser, totalCollected, totalOutstanding };
     }, [contracts]);
 
     // 2. Prepare Chart Data
@@ -90,8 +101,8 @@ export function ContractAnalytics({ contracts, onFilterChange, activeFilters }: 
     return (
         <div className="space-y-6 mb-8">
             {/* Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="bg-white border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <Card className="bg-white border-slate-200 col-span-1">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle className="text-sm font-medium text-slate-500">{t("contract.analytics.totalValue")}</CardTitle>
                         <DollarSign className="h-4 w-4 text-slate-400" />
@@ -129,6 +140,28 @@ export function ContractAnalytics({ contracts, onFilterChange, activeFilters }: 
                     <CardContent>
                         <div className="text-2xl font-bold text-purple-600">{metrics.topUser}</div>
                         <p className="text-xs text-slate-500 mt-1">{t("contract.analytics.topDrafterDesc")}</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white border-slate-200 col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-sm font-medium text-slate-500">已收账款 (Collected)</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{formatCurrency(metrics.totalCollected)}</div>
+                        <p className="text-xs text-slate-500 mt-1">Total Collected Amount</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white border-slate-200 col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-sm font-medium text-slate-500">待收账款 (Outstanding)</CardTitle>
+                        <DollarSign className="h-4 w-4 text-orange-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-orange-600">{formatCurrency(metrics.totalOutstanding > 0 ? metrics.totalOutstanding : 0)}</div>
+                        <p className="text-xs text-slate-500 mt-1">Total Outstanding Amount</p>
                     </CardContent>
                 </Card>
             </div>

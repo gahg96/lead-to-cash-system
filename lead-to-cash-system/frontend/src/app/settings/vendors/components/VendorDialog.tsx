@@ -19,7 +19,9 @@ export function VendorDialog({ open, onOpenChange, vendor, onSuccess }: VendorDi
     const { t } = useI18n();
     const [loading, setLoading] = useState(false);
     const [allCustomers, setAllCustomers] = useState<any[]>([]);
-    const [allVendors, setAllVendors] = useState<any[]>([]); // For parent selection
+    const [allVendors, setAllVendors] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
         type: "",
@@ -195,24 +197,67 @@ export function VendorDialog({ open, onOpenChange, vendor, onSuccess }: VendorDi
                                 })}
                             </div>
                         )}
-                        <Select
-                            onValueChange={(val) => {
-                                if (!formData.customerIds.includes(val)) {
-                                    setFormData(prev => ({ ...prev, customerIds: [...prev.customerIds, val] }));
-                                }
-                            }}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="添加关联客户..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {allCustomers.filter(c => !formData.customerIds.includes(c.id)).map(c => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                        {c.companyName}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="relative">
+                            <div className="relative">
+                                <Input
+                                    placeholder="搜索并添加关联客户..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setShowDropdown(true);
+                                    }}
+                                    onFocus={() => setShowDropdown(true)}
+                                // onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // Delay for click handling
+                                />
+                                {searchTerm && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchTerm("")}
+                                        className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {showDropdown && (searchTerm || allCustomers.length > 0) && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                                    {allCustomers
+                                        .filter(c => !formData.customerIds.includes(c.id))
+                                        .filter(c => c.companyName.toLowerCase().includes(searchTerm.toLowerCase()))
+                                        .length === 0 ? (
+                                        <div className="p-2 text-sm text-gray-500 text-center">未找到相关客户</div>
+                                    ) : (
+                                        allCustomers
+                                            .filter(c => !formData.customerIds.includes(c.id))
+                                            .filter(c => c.companyName.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .map(c => (
+                                                <div
+                                                    key={c.id}
+                                                    className="p-2 hover:bg-slate-100 cursor-pointer text-sm flex justify-between items-center"
+                                                    onClick={() => {
+                                                        setFormData(prev => ({ ...prev, customerIds: [...prev.customerIds, c.id] }));
+                                                        setSearchTerm("");
+                                                        // Keep dropdown open or close? Maybe close specifically or keep for multi-add
+                                                        // setShowDropdown(false); 
+                                                    }}
+                                                >
+                                                    <span>{c.companyName}</span>
+                                                    <span className="text-xs text-gray-400">{c.contactName}</span>
+                                                </div>
+                                            ))
+                                    )}
+                                </div>
+                            )}
+                            {/* Overlay to close dropdown when clicking outside */}
+                            {showDropdown && (
+                                <div
+                                    className="fixed inset-0 z-0"
+                                    onClick={() => setShowDropdown(false)}
+                                    style={{ pointerEvents: "auto", background: "transparent" }}
+                                />
+                            )}
+                        </div>
                     </div>
 
                     <div className="border-t pt-4">

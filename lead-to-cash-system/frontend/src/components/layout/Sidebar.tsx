@@ -13,7 +13,8 @@ import {
     Users,
     Settings,
     Building2,
-    Wallet
+    Wallet,
+    Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,11 +30,18 @@ export default function Sidebar() {
         { name: t("nav.contracts") || "Contracts", href: '/contracts', icon: FileText },
         { name: t("nav.delivery") || "Project Delivery", href: '/delivery', icon: Truck },
         { name: t("nav.finance") || "Finance & Payment", href: '/finance', icon: CreditCard },
+        { name: t("nav.invoices") || "发票管理", href: '/finance/invoices', icon: FileText },
         { name: "客户管理", href: '/customers', icon: Users },
         { name: "厂商管理", href: '/settings/vendors', icon: Building2 },
         { name: "收款账户配置", href: '/settings/payment-accounts', icon: Wallet },
+        { name: "知识库管理", href: '/settings/knowledge-base', icon: Database },
         { name: "内部人员管理", href: '/settings/users', icon: Settings },
     ];
+
+    // Find the best match (longest matching href)
+    const activeItem = navItems
+        .filter(item => item.href === '/' ? pathname === '/' : pathname.startsWith(item.href))
+        .sort((a, b) => b.href.length - a.href.length)[0];
 
     return (
         <div className="flex flex-col h-screen w-64 bg-slate-900 text-white fixed left-0 top-0">
@@ -46,7 +54,7 @@ export default function Sidebar() {
 
             <nav className="flex-1 px-4 space-y-2">
                 {navItems.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+                    const isActive = activeItem?.href === item.href;
                     return (
                         <Link
                             key={item.href}

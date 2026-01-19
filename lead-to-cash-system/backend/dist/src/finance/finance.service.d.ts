@@ -29,9 +29,14 @@ export declare class FinanceService {
             createdAt: Date;
             status: import("@prisma/client").$Enums.ContractStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
-            opportunityId: string;
+            opportunityId: string | null;
             wonPrice: import("@prisma/client/runtime/library").Decimal | null;
             contractNumber: string;
+            contractType: import("@prisma/client").$Enums.ContractType;
+            vendorId: string | null;
+            procurementCategory: import("@prisma/client").$Enums.ProcurementCategory | null;
+            relatedSalesContractId: string | null;
+            endCustomerId: string | null;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
@@ -80,6 +85,9 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     }>;
@@ -115,9 +123,14 @@ export declare class FinanceService {
             createdAt: Date;
             status: import("@prisma/client").$Enums.ContractStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
-            opportunityId: string;
+            opportunityId: string | null;
             wonPrice: import("@prisma/client/runtime/library").Decimal | null;
             contractNumber: string;
+            contractType: import("@prisma/client").$Enums.ContractType;
+            vendorId: string | null;
+            procurementCategory: import("@prisma/client").$Enums.ProcurementCategory | null;
+            relatedSalesContractId: string | null;
+            endCustomerId: string | null;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
@@ -166,6 +179,9 @@ export declare class FinanceService {
             remarks: string | null;
             filePath: string | null;
             fileName: string | null;
+            direction: import("@prisma/client").$Enums.InvoiceDirection;
+            vendorInvoiceNumber: string | null;
+            receivedDate: Date | null;
             projectId: string | null;
             milestoneId: string | null;
         } | null;
@@ -188,9 +204,14 @@ export declare class FinanceService {
             createdAt: Date;
             status: import("@prisma/client").$Enums.ContractStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
-            opportunityId: string;
+            opportunityId: string | null;
             wonPrice: import("@prisma/client/runtime/library").Decimal | null;
             contractNumber: string;
+            contractType: import("@prisma/client").$Enums.ContractType;
+            vendorId: string | null;
+            procurementCategory: import("@prisma/client").$Enums.ProcurementCategory | null;
+            relatedSalesContractId: string | null;
+            endCustomerId: string | null;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
@@ -239,12 +260,15 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     }>;
     findAll(): Promise<({
         contract: {
-            opportunity: {
+            opportunity: ({
                 customer: {
                     id: string;
                     companyName: string;
@@ -284,15 +308,20 @@ export declare class FinanceService {
                 grossProfit: import("@prisma/client/runtime/library").Decimal | null;
                 profitMargin: import("@prisma/client/runtime/library").Decimal | null;
                 businessType: import("@prisma/client").$Enums.BusinessType | null;
-            };
+            }) | null;
         } & {
             id: string;
             createdAt: Date;
             status: import("@prisma/client").$Enums.ContractStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
-            opportunityId: string;
+            opportunityId: string | null;
             wonPrice: import("@prisma/client/runtime/library").Decimal | null;
             contractNumber: string;
+            contractType: import("@prisma/client").$Enums.ContractType;
+            vendorId: string | null;
+            procurementCategory: import("@prisma/client").$Enums.ProcurementCategory | null;
+            relatedSalesContractId: string | null;
+            endCustomerId: string | null;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
@@ -375,6 +404,9 @@ export declare class FinanceService {
             invoiceId: string;
             paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
             transactionRef: string | null;
+            paymentType: import("@prisma/client").$Enums.PaymentType;
+            fromAccount: string | null;
+            toAccount: string | null;
         }[];
     } & {
         id: string;
@@ -396,12 +428,15 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     })[]>;
     findOne(id: string): Promise<{
         contract: {
-            opportunity: {
+            opportunity: ({
                 customer: {
                     id: string;
                     companyName: string;
@@ -441,15 +476,20 @@ export declare class FinanceService {
                 grossProfit: import("@prisma/client/runtime/library").Decimal | null;
                 profitMargin: import("@prisma/client/runtime/library").Decimal | null;
                 businessType: import("@prisma/client").$Enums.BusinessType | null;
-            };
+            }) | null;
         } & {
             id: string;
             createdAt: Date;
             status: import("@prisma/client").$Enums.ContractStatus;
             estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
-            opportunityId: string;
+            opportunityId: string | null;
             wonPrice: import("@prisma/client/runtime/library").Decimal | null;
             contractNumber: string;
+            contractType: import("@prisma/client").$Enums.ContractType;
+            vendorId: string | null;
+            procurementCategory: import("@prisma/client").$Enums.ProcurementCategory | null;
+            relatedSalesContractId: string | null;
+            endCustomerId: string | null;
             totalContractValue: import("@prisma/client/runtime/library").Decimal;
             paymentTerms: string | null;
             startDate: Date | null;
@@ -532,6 +572,9 @@ export declare class FinanceService {
             invoiceId: string;
             paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
             transactionRef: string | null;
+            paymentType: import("@prisma/client").$Enums.PaymentType;
+            fromAccount: string | null;
+            toAccount: string | null;
         }[];
     } & {
         id: string;
@@ -553,6 +596,9 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     }>;
@@ -576,6 +622,9 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     }>;
@@ -602,6 +651,9 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     }>;
@@ -625,6 +677,9 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     }>;
@@ -644,6 +699,13 @@ export declare class FinanceService {
         invoiceId: string;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         transactionRef: string | null;
+        paymentType: import("@prisma/client").$Enums.PaymentType;
+        fromAccount: string | null;
+        toAccount: string | null;
+    }>;
+    private createFundTransactionForPayment;
+    syncTransactions(): Promise<{
+        message: string;
     }>;
     getDashboardData(): Promise<{
         pendingInvoiceAmount: number;
@@ -651,7 +713,7 @@ export declare class FinanceService {
         paidAmount: number;
         readyToInvoiceMilestones: ({
             contract: {
-                opportunity: {
+                opportunity: ({
                     customer: {
                         id: string;
                         companyName: string;
@@ -691,15 +753,20 @@ export declare class FinanceService {
                     grossProfit: import("@prisma/client/runtime/library").Decimal | null;
                     profitMargin: import("@prisma/client/runtime/library").Decimal | null;
                     businessType: import("@prisma/client").$Enums.BusinessType | null;
-                };
+                }) | null;
             } & {
                 id: string;
                 createdAt: Date;
                 status: import("@prisma/client").$Enums.ContractStatus;
                 estimatedValue: import("@prisma/client/runtime/library").Decimal | null;
-                opportunityId: string;
+                opportunityId: string | null;
                 wonPrice: import("@prisma/client/runtime/library").Decimal | null;
                 contractNumber: string;
+                contractType: import("@prisma/client").$Enums.ContractType;
+                vendorId: string | null;
+                procurementCategory: import("@prisma/client").$Enums.ProcurementCategory | null;
+                relatedSalesContractId: string | null;
+                endCustomerId: string | null;
                 totalContractValue: import("@prisma/client/runtime/library").Decimal;
                 paymentTerms: string | null;
                 startDate: Date | null;
@@ -771,6 +838,9 @@ export declare class FinanceService {
                 invoiceId: string;
                 paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
                 transactionRef: string | null;
+                paymentType: import("@prisma/client").$Enums.PaymentType;
+                fromAccount: string | null;
+                toAccount: string | null;
             }[];
         } & {
             id: string;
@@ -792,6 +862,9 @@ export declare class FinanceService {
             remarks: string | null;
             filePath: string | null;
             fileName: string | null;
+            direction: import("@prisma/client").$Enums.InvoiceDirection;
+            vendorInvoiceNumber: string | null;
+            receivedDate: Date | null;
             projectId: string | null;
             milestoneId: string | null;
         })[];
@@ -878,6 +951,9 @@ export declare class FinanceService {
         remarks: string | null;
         filePath: string | null;
         fileName: string | null;
+        direction: import("@prisma/client").$Enums.InvoiceDirection;
+        vendorInvoiceNumber: string | null;
+        receivedDate: Date | null;
         projectId: string | null;
         milestoneId: string | null;
     }>;
@@ -897,5 +973,8 @@ export declare class FinanceService {
         invoiceId: string;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         transactionRef: string | null;
+        paymentType: import("@prisma/client").$Enums.PaymentType;
+        fromAccount: string | null;
+        toAccount: string | null;
     }>;
 }

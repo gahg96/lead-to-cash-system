@@ -94,6 +94,9 @@ let FinanceController = class FinanceController {
             filename: decodedFilename,
         });
     }
+    syncTransactions() {
+        return this.financeService.syncTransactions();
+    }
 };
 exports.FinanceController = FinanceController;
 __decorate([
@@ -230,6 +233,12 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], FinanceController.prototype, "uploadPaymentReceipt", null);
+__decorate([
+    (0, common_1.Post)('sync-transactions'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "syncTransactions", null);
 exports.FinanceController = FinanceController = __decorate([
     (0, common_1.Controller)('finance'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

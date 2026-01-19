@@ -317,7 +317,7 @@ export default function ProjectDetailPage() {
         } catch (error) {
             console.error('Delete transaction error:', error);
             // Revert on error
-            setProject(prev => ({ ...prev, fundTransactions: prevTransactions }));
+            setProject((prev: any) => ({ ...prev, fundTransactions: prevTransactions }));
             alert('删除失败');
         }
     };
@@ -361,7 +361,7 @@ export default function ProjectDetailPage() {
     if (currentComplexity === 'High') emergencySupportRate = 0.10;
 
     const calculatedEmergencySupport = contractValue * emergencySupportRate;
-    const currentEmergencySupport = isEditing ? editData.emergencySupportCost : Number(project.emergencySupportCost || 0);
+    const currentEmergencySupport = Number((isEditing ? editData.emergencySupportCost : project.emergencySupportCost) || 0);
 
     const transactionTotal = project.fundTransactions?.filter((tx: any) => tx.status !== 'ARCHIVED').reduce((sum: number, tx: any) => sum + Number(tx.totalAmount), 0) || 0;
     const totalCost = currentLaborCost + currentOutsourceCost + currentTravelCost + currentThirdPartyCost + currentSoftwareCost + currentOtherWeight + currentEmergencySupport + transactionTotal;
@@ -386,11 +386,18 @@ export default function ProjectDetailPage() {
             <div className="flex justify-between items-start">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold flex items-center gap-3">
-                        {project.contract.opportunity.title}
+                        {project.contract.opportunity?.title || project.contract.scope || 'Untitled Project'}
                         <Badge variant="outline">{t(`project.status.${project.status.toLowerCase()}`)}</Badge>
                         {project.isDelayed && <Badge variant="destructive" className="animate-pulse">{t("project.fields.isDelayed")}</Badge>}
                     </h1>
-                    <p className="text-slate-500">{project.contract.contractNumber} - {project.contract.opportunity.customer.companyName}</p>
+                    <p className="text-slate-500">
+                        {project.contract.contractNumber}
+                        {project.contract.opportunity?.customer?.companyName
+                            ? ` - ${project.contract.opportunity.customer.companyName}`
+                            : project.contract.vendor?.name
+                                ? ` - ${project.contract.vendor.name}`
+                                : ''}
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     {!isEditing ? (

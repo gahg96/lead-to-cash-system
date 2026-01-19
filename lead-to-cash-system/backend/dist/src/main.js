@@ -21,6 +21,7 @@ async function bootstrap() {
     app.useStaticAssets((0, path_1.join)(process.cwd(), 'uploads'), {
         prefix: '/uploads',
     });
+    console.log(`[DEBUG] Loaded OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 5) + '...' + process.env.OPENAI_API_KEY.slice(-4) : 'UNDEFINED'}`);
     await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

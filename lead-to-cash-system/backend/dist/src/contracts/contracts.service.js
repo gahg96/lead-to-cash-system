@@ -136,8 +136,30 @@ let ContractsService = class ContractsService {
                 opportunity: {
                     include: { customer: true }
                 },
+                vendor: true,
+                endCustomer: true,
+                relatedSalesContract: {
+                    include: {
+                        opportunity: {
+                            include: {
+                                customer: true,
+                            },
+                        },
+                    },
+                },
+                linkedProcurementContracts: {
+                    include: {
+                        vendor: true,
+                        endCustomer: true,
+                    },
+                },
                 drafter: true,
                 approver: true,
+                invoices: {
+                    include: {
+                        payments: true
+                    }
+                }
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -147,6 +169,23 @@ let ContractsService = class ContractsService {
             where: { id },
             include: {
                 opportunity: { include: { customer: true } },
+                vendor: true,
+                endCustomer: true,
+                relatedSalesContract: {
+                    include: {
+                        opportunity: {
+                            include: {
+                                customer: true,
+                            },
+                        },
+                    },
+                },
+                linkedProcurementContracts: {
+                    include: {
+                        vendor: true,
+                        endCustomer: true,
+                    }
+                },
                 milestones: { orderBy: { createdAt: 'asc' } },
                 documents: { include: { uploadedBy: true }, orderBy: { createdAt: 'desc' } },
                 lineItems: { orderBy: { sortOrder: 'asc' } },
@@ -279,27 +318,53 @@ let ContractsService = class ContractsService {
             },
         });
         if (!milestone) {
-            throw new Error('Milestone not found');
+            throw new common_1.BadRequestException('Milestone not found');
         }
-        const updateData = { ...data };
-        const newAmount = updateData.amount ? parseFloat(updateData.amount) : Number(milestone.amount);
+        const allowedFields = ['name', 'amount', 'dueDate', 'status'];
+        const updateData = {};
+        for (const field of allowedFields) {
+            if (data[field] !== undefined) {
+                updateData[field] = data[field];
+            }
+        }
+        let newAmount = Number(milestone.amount);
+        if (updateData.amount !== undefined && updateData.amount !== '' && updateData.amount !== null && !isNaN(Number(updateData.amount))) {
+            newAmount = Number(updateData.amount);
+            updateData.amount = newAmount;
+        }
+        else if (updateData.amount === '' || updateData.amount === null) {
+            updateData.amount = newAmount;
+        }
+        else {
+            delete updateData.amount;
+        }
+        if (updateData.dueDate !== undefined) {
+            if (updateData.dueDate === '' || updateData.dueDate === null) {
+                updateData.dueDate = null;
+            }
+            else {
+                const d = new Date(updateData.dueDate);
+                if (!isNaN(d.getTime())) {
+                    updateData.dueDate = d;
+                }
+                else {
+                    delete updateData.dueDate;
+                }
+            }
+        }
         const totalWithoutCurrent = milestone.contract.milestones
             .filter(m => m.id !== id)
             .reduce((sum, m) => sum + Number(m.amount), 0);
         const newTotal = totalWithoutCurrent + newAmount;
-        if (newTotal > Number(milestone.contract.totalContractValue)) {
-            throw new Error(`里程碑总金额 (¥${newTotal.toLocaleString()}) 超过合同金额 (¥${Number(milestone.contract.totalContractValue).toLocaleString()})`);
+        const contractLimit = Number(milestone.contract.wonPrice) || Number(milestone.contract.totalContractValue);
+        if (newTotal > contractLimit) {
+            throw new common_1.BadRequestException(`里程碑总金额 (¥${newTotal.toLocaleString()}) 超过合同金额 (¥${contractLimit.toLocaleString()})`);
         }
-        if (updateData.amount) {
-            updateData.amount = newAmount;
-        }
-        if (updateData.dueDate && typeof updateData.dueDate === 'string') {
-            updateData.dueDate = new Date(updateData.dueDate);
-        }
-        return this.prisma.milestone.update({
+        const result = await this.prisma.milestone.update({
             where: { id },
             data: updateData,
         });
+        return result;
     }
     async deleteMilestone(id) {
         return this.prisma.milestone.delete({
@@ -328,6 +393,58 @@ let ContractsService = class ContractsService {
             return tx.contract.delete({
                 where: { id },
             });
+        });
+    }
+    async createProcurementContract(dto, userId) {
+        return this.prisma.contract.create({
+            data: {
+                contractNumber: dto.contractNumber,
+                contractType: 'PROCUREMENT',
+                vendorId: dto.vendorId,
+                procurementCategory: dto.procurementCategory,
+                relatedSalesContractId: dto.relatedSalesContractId,
+                endCustomerId: dto.endCustomerId,
+                totalContractValue: dto.totalContractValue,
+                startDate: dto.startDate ? new Date(dto.startDate) : null,
+                endDate: dto.endDate ? new Date(dto.endDate) : null,
+                paymentTerms: dto.paymentTerms,
+                scope: dto.description,
+                status: 'Draft',
+                drafterId: userId,
+            },
+            include: {
+                vendor: true,
+                endCustomer: true,
+                relatedSalesContract: {
+                    include: {
+                        opportunity: {
+                            include: {
+                                customer: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+    async findByType(contractType) {
+        return this.prisma.contract.findMany({
+            where: {
+                contractType: contractType,
+            },
+            include: {
+                opportunity: {
+                    include: {
+                        customer: true,
+                    },
+                },
+                vendor: true,
+                relatedSalesContract: true,
+                milestones: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
         });
     }
 };

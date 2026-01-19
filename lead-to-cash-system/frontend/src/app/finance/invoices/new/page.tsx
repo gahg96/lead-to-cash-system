@@ -134,7 +134,7 @@ export default function NewInvoicePage() {
                                             <SelectItem value="none" disabled>暂无可用合同</SelectItem>
                                         ) : contracts.map((contract) => (
                                             <SelectItem key={contract.id} value={contract.id}>
-                                                {contract.contractNumber} - {contract.opportunity?.customer?.companyName || 'Unknown'} (¥{contract.totalContractValue?.toLocaleString()})
+                                                {contract.contractNumber} - {contract.opportunity?.customer?.companyName || 'Unknown'} (¥{Number(contract.wonPrice || contract.totalContractValue || 0).toLocaleString()})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { InvoiceType, InvoiceStatus, MilestoneStatus } from '@prisma/client';
+import { InvoiceType, InvoiceStatus, MilestoneStatus, FundTransactionType, FundTransactionStatus } from '@prisma/client';
 
 export interface ProjectHealthMetric {
     id: string;
@@ -122,70 +122,95 @@ export class FinanceService {
                 }
             }
 
-            // Generate invoice number
-            const invoiceNumber = await this.generateInvoiceNumber();
+            // Retry logic for unique invoice number generation
+            let retryCount = 0;
+            const maxRetries = 3;
 
-            // Calculate tax breakdown from tax-inclusive amount
-            // dto.amount is the tax-inclusive total from milestone
-            const taxBreakdown = this.calculateTaxBreakdown(dto.amount, dto.type);
-            const totalAmount = dto.amount; // Tax-inclusive total
-            const amountBeforeTax = taxBreakdown.amountBeforeTax;
-            const taxAmount = taxBreakdown.taxAmount;
-            const taxRate = taxBreakdown.taxRate;
+            while (retryCount < maxRetries) {
+                try {
+                    // Generate invoice number
+                    const invoiceNumber = await this.generateInvoiceNumber();
 
-            // Create invoice
-            // Use transaction to ensure consistency
-            const result = await this.prisma.$transaction(async (tx) => {
-                // Create invoice
-                const invoice = await tx.invoice.create({
-                    data: {
-                        invoiceNumber,
-                        contractId: dto.contractId,
-                        projectId: dto.projectId,
-                        milestoneId: dto.milestoneId,
-                        invoiceDate: new Date(dto.invoiceDate),
-                        dueDate: new Date(dto.dueDate),
-                        amount: amountBeforeTax, // Tax-exclusive amount
-                        taxRate,
-                        taxAmount,
-                        totalAmount, // Tax-inclusive amount (equals milestone amount)
-                        type: dto.type,
-                        status: InvoiceStatus.Draft,
-                        description: dto.description,
-                        remarks: dto.remarks,
-                    },
-                    include: {
-                        contract: {
+                    // Calculate tax breakdown from tax-inclusive amount
+                    // dto.amount is the tax-inclusive total from milestone
+                    const taxBreakdown = this.calculateTaxBreakdown(dto.amount, dto.type);
+                    const totalAmount = dto.amount; // Tax-inclusive total
+                    const amountBeforeTax = taxBreakdown.amountBeforeTax;
+                    const taxAmount = taxBreakdown.taxAmount;
+                    const taxRate = taxBreakdown.taxRate;
+
+                    // Create invoice
+                    // Use transaction to ensure consistency
+                    const result = await this.prisma.$transaction(async (tx) => {
+                        // Create invoice
+                        const invoice = await tx.invoice.create({
+                            data: {
+                                invoiceNumber,
+                                contractId: dto.contractId,
+                                projectId: dto.projectId,
+                                milestoneId: dto.milestoneId,
+                                invoiceDate: new Date(dto.invoiceDate),
+                                dueDate: new Date(dto.dueDate),
+                                amount: amountBeforeTax, // Tax-exclusive amount
+                                taxRate,
+                                taxAmount,
+                                totalAmount, // Tax-inclusive amount (equals milestone amount)
+                                type: dto.type,
+                                status: InvoiceStatus.Draft,
+                                description: dto.description,
+                                remarks: dto.remarks,
+                            },
                             include: {
-                                opportunity: {
+                                contract: {
                                     include: {
-                                        customer: true,
+                                        opportunity: {
+                                            include: {
+                                                customer: true,
+                                            },
+                                        },
                                     },
                                 },
+                                project: true,
+                                milestone: true,
                             },
-                        },
-                        project: true,
-                        milestone: true,
-                    },
-                });
+                        });
 
-                // If linked to milestone, update milestone invoice date
-                if (dto.milestoneId) {
-                    await tx.milestone.update({
-                        where: { id: dto.milestoneId },
-                        data: {
-                            invoiceDate: new Date(dto.invoiceDate),
-                            status: MilestoneStatus.Invoiced,
-                        },
+                        // If linked to milestone, update milestone invoice date
+                        if (dto.milestoneId) {
+                            await tx.milestone.update({
+                                where: { id: dto.milestoneId },
+                                data: {
+                                    invoiceDate: new Date(dto.invoiceDate),
+                                    status: MilestoneStatus.Invoiced,
+                                },
+                            });
+                        }
+
+                        return invoice;
                     });
+
+                    return result; // Success, return immediately
+
+                } catch (error) {
+                    // Check for Prisma unique constraint violation code (P2002)
+                    if (error.code === 'P2002' && error.meta?.target?.includes('invoiceNumber')) {
+                        retryCount++;
+                        console.warn(`Invoice number collision detected. Retrying... (${retryCount}/${maxRetries})`);
+                        // Short delay to allow other transaction to settle
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        continue;
+                    }
+                    throw error; // Rethrow other errors
                 }
+            }
 
-                return invoice;
-            });
+            throw new BadRequestException('Failed to generate unique invoice number after multiple retries. Please try again.');
 
-            return result;
         } catch (error) {
             console.error("Create Invoice Error:", error);
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
             throw new BadRequestException(`Failed to create invoice: ${error.message}`);
         }
     }
@@ -372,7 +397,21 @@ export class FinanceService {
      * Create payment record
      */
     async createPayment(dto: CreatePaymentDto) {
-        const invoice = await this.findOne(dto.invoiceId);
+        const invoice = await this.prisma.invoice.findUnique({
+            where: { id: dto.invoiceId },
+            include: {
+                contract: {
+                    include: {
+                        opportunity: {
+                            include: { customer: true }
+                        }
+                    }
+                },
+                project: true
+            }
+        });
+
+        if (!invoice) throw new NotFoundException('Invoice not found');
 
         // Generate payment number
         const year = new Date().getFullYear();
@@ -436,7 +475,77 @@ export class FinanceService {
             await this.updateStatus(dto.invoiceId, newStatus);
         }
 
+        // Create Fund Transaction for Project Financials
+        await this.createFundTransactionForPayment(invoice, payment);
+
         return payment;
+    }
+
+    private async createFundTransactionForPayment(invoice: any, payment: any) {
+        if (!invoice.projectId) return;
+
+        try {
+            await this.prisma.fundTransaction.create({
+                data: {
+                    projectId: invoice.projectId,
+                    type: FundTransactionType.SIMPLE_PASS,
+                    status: FundTransactionStatus.COMPLETED,
+                    description: `Invoice Payment: ${invoice.invoiceNumber}`,
+                    transactionDate: payment.paymentDate,
+                    totalAmount: payment.amount,
+                    collections: {
+                        create: {
+                            amount: payment.amount,
+                            receivedDate: payment.paymentDate,
+                            customerName: invoice.contract?.opportunity?.customer?.companyName || 'Unknown Customer',
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Failed to create fund transaction for payment', error);
+            // Don't block the payment response
+        }
+    }
+
+    async syncTransactions() {
+        const payments = await this.prisma.payment.findMany({
+            include: {
+                invoice: {
+                    include: {
+                        project: true,
+                        contract: {
+                            include: {
+                                opportunity: {
+                                    include: { customer: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        let syncedCount = 0;
+        for (const payment of payments) {
+            if (!payment.invoice.projectId) continue;
+
+            // Check if transaction exists (rough heuristic match)
+            const existing = await this.prisma.fundTransaction.findFirst({
+                where: {
+                    projectId: payment.invoice.projectId,
+                    totalAmount: payment.amount,
+                    transactionDate: payment.paymentDate,
+                    type: FundTransactionType.SIMPLE_PASS
+                }
+            });
+
+            if (!existing) {
+                await this.createFundTransactionForPayment(payment.invoice, payment);
+                syncedCount++;
+            }
+        }
+        return { message: `Synced ${syncedCount} transactions` };
     }
 
     /**
